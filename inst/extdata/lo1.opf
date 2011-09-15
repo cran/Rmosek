@@ -1,0 +1,32 @@
+[comment]
+   Written by MOSEK version 6.0.0.114
+   Date 13-07-11
+   Time 16:13:27
+[/comment]
+
+[hints]
+  [hint NUMVAR] 4 [/hint]
+  [hint NUMCON] 3 [/hint]
+  [hint NUMANZ] 9 [/hint]
+  [hint NUMQNZ] 0 [/hint]
+[/hints]
+
+[variables disallow_new_variables]
+  x1 x2 x3 x4 
+[/variables]
+
+[objective maximize 'obj']
+   3e+00 x1 + x2 + 5e+00 x3 + x4
+[/objective]
+
+[constraints]
+  [con 'c1']            3e+00 x1 + x2 + 2e+00 x3 = 3e+01 [/con]
+  [con 'c2'] 1.5e+01 <= 2e+00 x1 + x2 + 3e+00 x3 + x4 [/con]
+  [con 'c3']            2e+00 x2 + 3e+00 x4 <= 2.5e+01 [/con]
+[/constraints]
+
+[bounds]
+  [b]          0 <= * [/b]
+  [b] 0e+00      <= x2 <= 1e+01 [/b]
+[/bounds]
+

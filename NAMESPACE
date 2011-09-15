@@ -1,0 +1,9 @@
+useDynLib("rmosek")
+
+import(Matrix)
+
+export(mosek)
+export(mosek_clean)
+export(mosek_version)
+export(mosek_read)
+export(mosek_write)

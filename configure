@@ -1,0 +1,89 @@
+#!/bin/sh
+
+echo "Configuring for a UNIX-alike platform"
+
+LOCALSYS_PATH=src$R_ARCH/Localsys.txt;
+
+#
+# ATTEMPT 1: READ CONFIGURATION FROM ENVIRONMENT
+#
+PKG_MOSEKHOME=$PKG_MOSEKHOME;
+PKG_MOSEKLIB=$PKG_MOSEKLIB;
+
+if ( [ x"$PKG_MOSEKHOME" = x ] || [ x"$PKG_MOSEKHOME" = x"[MOSEK_HOME_PATH]" ] ) && \
+   ( [ x"$PKG_MOSEKLIB"  = x ] || [ x"$PKG_MOSEKLIB"  = x"[MOSEK_LIB_FILE]"  ] ); then
+
+  #
+  # ATTEMPT 2: READ CONFIGURATION FROM LOCALSYS FILE
+  #
+
+  # (1) Go through all lines,
+  # (2) From those that start with PKG_MOSEKHOME=
+  # (3) extract the RHS
+  # (4) remove the carriage returns
+  # (5) remove trailing spaces
+  PKG_MOSEKHOME=$(cat $LOCALSYS_PATH | grep "^PKG_MOSEKHOME" | sed 's/^PKG_MOSEKHOME=\(.*\)/\1/g' | sed 's/[\r]*$//g' | sed 's/[ ]*$//g');
+  PKG_MOSEKLIB=$(cat $LOCALSYS_PATH | grep "^PKG_MOSEKLIB" | sed 's/^PKG_MOSEKLIB=\(.*\)/\1/g' | sed 's/[\r]*$//g' | sed 's/[ ]*$//g');
+
+fi;
+
+if ( [ x"$PKG_MOSEKHOME" = x ] || [ x"$PKG_MOSEKHOME" = x"[MOSEK_HOME_PATH]" ] ) && \
+   ( [ x"$PKG_MOSEKLIB"  = x ] || [ x"$PKG_MOSEKLIB"  = x"[MOSEK_LIB_FILE]"  ] ); then
+
+  #
+  # ATTEMPT 3: GUESS CONFIGURATION FROM "mosek" command
+  #
+  PKG_MOSEKHOME=$(which mosek | sed 's/bin\/mosek*$//');
+
+  # (1) Go through all mosek library files
+  # (2) From those that does not have additional specifiers (integers allowed)
+  # (3) Extract the integers if any, and add prefix 'mosek'
+  PKG_MOSEKLIB=$(find $PKG_MOSEKHOME -name 'libmosek*.so' | grep '\/libmosek\([0-9]*\).so*$' | sed 's/\(.*\)libmosek\([0-9]*\).so/mosek\2/g');
+
+fi;
+
+#
+# EXIT IF A CONFIGURATION HAVE NOT BEEN READ
+#
+if [ x"$PKG_MOSEKHOME" = x ] || [ x"$PKG_MOSEKHOME" = x"[MOSEK_HOME_PATH]" ]; then
+  echo "*** Could not find variable 'PKG_MOSEKHOME' in configure-vars (configure.vars) argument ***";
+  echo "*** Could not find variable 'PKG_MOSEKHOME' in /src$R_ARCH/Localsys.txt file ***";
+  echo "*** Variable 'PKG_MOSEKHOME' not guessed from command 'mosek' in the current environment ***";
+  exit 1;
+fi;
+
+if [ x"$PKG_MOSEKLIB"  = x ] || [ x"$PKG_MOSEKLIB"  = x"[MOSEK_LIB_FILE]" ]; then
+  echo "*** Could not find variable 'PKG_MOSEKLIB' in configure-vars (configure.vars) argument ***";
+  echo "*** Could not find variable 'PKG_MOSEKLIB' in /src$R_ARCH/Localsys.txt file ***";
+  echo "*** Variable 'PKG_MOSEKHOME' not guessed from command 'mosek' in the current environment ***";
+  exit 1;
+fi;
+
+
+#
+# FORMAT INPUT CORRECTLY AND VERIFY
+#
+
+# Trim away traling slashes from path
+REMOVESLASHES=${PKG_MOSEKHOME##*[!/]};
+PKG_MOSEKHOME=${PKG_MOSEKHOME%$REMOVESLASHES};
+
+test -d $PKG_MOSEKHOME
+if [ $? != 0 ]; then
+  echo "*** Variable 'PKG_MOSEKHOME' is not a directory: $PKG_MOSEKHOME ***"
+  exit 1
+fi;
+
+
+#
+# PERFORM CONFIGURATION
+#
+echo "Using MOSEK home directory:" $PKG_MOSEKHOME;
+echo "Using MOSEK library:" $PKG_MOSEKLIB;
+
+echo "
+PKG_MOSEKHOME:=$PKG_MOSEKHOME
+PKG_MOSEKLIB:=$PKG_MOSEKLIB
+" > $LOCALSYS_PATH;
+
+echo "Configuration done."

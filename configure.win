@@ -1,0 +1,80 @@
+#!/bin/sh
+
+echo "Configuring for the Windows platform"
+
+LOCALSYS_PATH=src$R_ARCH/Localsys.txt; 
+newline="
+";
+
+#
+# ATTEMPT 1: READ CONFIGURATION FROM ENVIRONMENT
+#
+PKG_MOSEKHOME=$PKG_MOSEKHOME;
+PKG_MOSEKLIB=$PKG_MOSEKLIB;
+
+if ( [ x"$PKG_MOSEKHOME" = x ] || [ x"$PKG_MOSEKHOME" = x"[MOSEK_HOME_PATH]" ] ) && \
+   ( [ x"$PKG_MOSEKLIB"  = x ] || [ x"$PKG_MOSEKLIB"  = x"[MOSEK_LIB_FILE]"  ] ); then
+
+  #
+  # ATTEMPT 2: READ CONFIGURATION FROM LOCALSYS FILE
+  #
+
+  # (1) Go through all lines, 
+  # (2) From those that start with PKG_MOSEKHOME=
+  # (3) extract the RHS
+  # (4) remove the carriage returns
+  # (5) remove trailing spaces
+  PKG_MOSEKHOME=$(cat $LOCALSYS_PATH | grep "^PKG_MOSEKHOME" | sed 's/^PKG_MOSEKHOME=\(.*\)/\1/g' | sed 's/[\r]*$//g' | sed 's/[ ]*$//g');
+  PKG_MOSEKLIB=$(cat $LOCALSYS_PATH | grep "^PKG_MOSEKLIB" | sed 's/^PKG_MOSEKLIB=\(.*\)/\1/g' | sed 's/[\r]*$//g' | sed 's/[ ]*$//g');
+  
+fi;
+
+if ( [ x"$PKG_MOSEKHOME" = x ] || [ x"$PKG_MOSEKHOME" = x"[MOSEK_HOME_PATH]" ] ) && \
+   ( [ x"$PKG_MOSEKLIB"  = x ] || [ x"$PKG_MOSEKLIB"  = x"[MOSEK_LIB_FILE]"  ] ); then
+   
+  #
+  # ATTEMPT 3: GUESS CONFIGURATION FROM "mosek" command
+  #
+  echo "Guessing compilation parameters from the location of mosek.exe in Windows CMD";
+  
+  PKG_MOSEKEXE_LIST="$(where mosek)";
+  PKG_MOSEKEXE=$(echo "$PKG_MOSEKEXE_LIST" | cut -d "$newline" -f 1);
+  PKG_MOSEKEXE_LENGTH=$(expr length "$PKG_MOSEKEXE");
+  PKG_MOSEKEXE_POSTFIX_LENGTH=$(expr length "\bin\mosek.exe");
+
+  PKG_MOSEKHOME_LENGTH=$(expr $PKG_MOSEKEXE_LENGTH - $PKG_MOSEKEXE_POSTFIX_LENGTH);
+  PKG_MOSEKHOME=$(expr substr "$PKG_MOSEKEXE" 1 $PKG_MOSEKHOME_LENGTH);
+
+  PKG_MOSEKLIBPATH_LIST="$(where /R "$PKG_MOSEKHOME" "mosek*.lib")";
+  PKG_MOSEKLIBPATH=$(echo "$PKG_MOSEKLIBPATH_LIST" | cut -d "$newline" -f 1);
+  PKG_MOSEKLIBPATH_LENGTH=$(expr length "$PKG_MOSEKLIBPATH");
+  PKG_MOSEKLIBPATH_PREFIX_LENGTH=$(expr length "$PKG_MOSEKHOME\bin\\");
+  PKG_MOSEKLIBPATH_POSTFIX_LENGTH=$(expr length ".lib");
+
+  PKG_MOSEKLIB_LENGTH=$(expr $PKG_MOSEKLIBPATH_LENGTH - $PKG_MOSEKLIBPATH_PREFIX_LENGTH - $PKG_MOSEKLIBPATH_POSTFIX_LENGTH);
+  PKG_MOSEKLIB=$(expr substr "$PKG_MOSEKLIBPATH" $(expr $PKG_MOSEKLIBPATH_PREFIX_LENGTH + 1) $PKG_MOSEKLIB_LENGTH);
+  
+fi;
+
+
+#
+# WINDOWS-STYLE TO POSIX-STYLE PATH
+#
+PKG_MOSEKHOME_POSIX="$(echo "$PKG_MOSEKHOME" | sed 's/\\/\//g')";         #POSIX style: replaces '\' with '/'
+PKG_MOSEKHOME_POSIX="$(echo "$PKG_MOSEKHOME_POSIX" | sed 's/ /\\ /g')";   #Escape spaces: replaces ' ' with '\ '
+PKG_MOSEKHOME_POSIX="$(echo "$PKG_MOSEKHOME_POSIX" | sed 's/(/\\(/g')";   #Escape left-parenthesis: replaces '(' with '\('
+PKG_MOSEKHOME_POSIX="$(echo "$PKG_MOSEKHOME_POSIX" | sed 's/)/\\)/g')";   #Escape right-parenthesis: replaces ')' with '\)'
+
+
+#
+# PERFORM CONFIGURATION
+#
+echo "Using MOSEK home directory:" $PKG_MOSEKHOME;
+echo "Using MOSEK library:" $PKG_MOSEKLIB;
+
+echo "
+PKG_MOSEKHOME:=$PKG_MOSEKHOME_POSIX
+PKG_MOSEKLIB:=$PKG_MOSEKLIB
+" > $LOCALSYS_PATH;
+
+echo "Configuration done.";
