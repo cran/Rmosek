@@ -16,11 +16,10 @@
 // along with this program; if not, see <http://www.gnu.org/licenses/>.
 //
 
-#include <R.h>
-#include <Rinternals.h>
+#define R_NO_REMAP
 #include <R_ext/Rdynload.h>
 
-#include "Matrix.h"
+#include "local_stubs.h"
 #include "mosek.h"
 
 #include <vector>
@@ -28,6 +27,9 @@
 #include <sstream>
 #include <memory>
 #include <stdexcept>
+#include <limits>
+
+using namespace std;
 
 extern "C"
 {
@@ -40,20 +42,18 @@ extern "C"
 	void R_unload_rmosek(DllInfo *info);
 }
 
-using namespace std;
+#define MSK_INNER_LVL MSK_LVL4::MSK_LVL3::MSK_LVL2::MSK_LVL1
+
+namespace MSK_LVL4 {
+namespace MSK_LVL3 {
+namespace MSK_LVL2 {
+namespace MSK_LVL1 {
 
 // TODO: Replace these typedefs with SEXP_handles. Consider the use of
 //       SEXP_LIST_handle, and so forth, to avoid unnecessary type-validations.
 typedef SEXP SEXP_LIST;
 typedef SEXP SEXP_NUMERIC;
 typedef SEXP SEXP_CHARACTER;
-
-// FIXME: Hard coded hack for non-exported functions of the Matrix Package
-#define CHOLMOD_DOUBLE 0				// amesos_cholmod_core.h file reference
-bool Matrix_isclass_csparse(SEXP x);
-bool Matrix_isclass_triplet(SEXP x);
-bool Matrix_isclass_dense(SEXP x);
-bool Matrix_isclass_factor(SEXP x);
 
 // Global initialization
 cholmod_common chol;					    		// Construct cholmod_common struct local to the mosek package
@@ -156,7 +156,7 @@ void printpendingmsg() {
 	if (mosek_pendingmsg_str.size() != mosek_pendingmsg_type.size())
 		throw msk_exception("Error in handling of pending messages");
 
-	for (size_t i=0; i<mosek_pendingmsg_str.size(); i++) {
+	for (vector<string>::size_type i=0; i<mosek_pendingmsg_str.size(); i++) {
 		printoutput(mosek_pendingmsg_str[i], mosek_pendingmsg_type[i]);
 	}
 
@@ -219,14 +219,14 @@ int scalar2int(double scalar) {
 }
 
 bool isEmpty(SEXP obj) {
-	if (isNull(obj))
+	if (Rf_isNull(obj))
 		return true;
 
 //	if (length(obj) == 0)
 //		return true;
 
-	if (isLogical(obj) || isNumeric(obj)) {
-		double obj_val = asReal(obj);
+	if (Rf_isLogical(obj) || Rf_isNumeric(obj)) {
+		double obj_val = Rf_asReal(obj);
 
 		if (ISNA(obj_val) || ISNAN(obj_val))
 			return true;
@@ -236,34 +236,34 @@ bool isEmpty(SEXP obj) {
 }
 
 double NUMERIC_ELT(SEXP obj, R_len_t idx) {
-	if (isNumeric(obj) && length(obj) > idx) {
-		if (isReal(obj))
+	if (Rf_isNumeric(obj) && Rf_length(obj) > idx) {
+		if (Rf_isReal(obj))
 			return REAL(obj)[idx];
-		if (isInteger(obj))
+		if (Rf_isInteger(obj))
 			return (double)(INTEGER(obj)[idx]);
 	}
 	throw msk_exception("Internal function NUMERIC_ELT received an unknown request");
 }
 
 int INTEGER_ELT(SEXP obj, R_len_t idx) {
-	if (isNumeric(obj) && length(obj) > idx) {
-		if (isInteger(obj))
+	if (Rf_isNumeric(obj) && Rf_length(obj) > idx) {
+		if (Rf_isInteger(obj))
 			return INTEGER(obj)[idx];
-		if (isReal(obj))
+		if (Rf_isReal(obj))
 			return scalar2int(REAL(obj)[idx]);
 	}
 	throw msk_exception("Internal function INTEGER_ELT received an unknown request");
 }
 
 string CHARACTER_ELT(SEXP obj, R_len_t idx) {
-	if (isString(obj) && length(obj) > idx) {
+	if (Rf_isString(obj) && Rf_length(obj) > idx) {
 		return string(CHAR(STRING_ELT(obj,idx)));
 	}
 	throw msk_exception("Internal function CHARACTER_ELT received an unknown request");
 }
 
 bool BOOLEAN_ELT(SEXP obj, R_len_t idx) {
-	if (isLogical(obj) && length(obj) > idx) {
+	if (Rf_isLogical(obj) && Rf_length(obj) > idx) {
 		return (bool)(INTEGER(obj)[idx]);
 	}
 	throw msk_exception("Internal function BOOLEAN_ELT received an unknown request");
@@ -339,13 +339,13 @@ public:
 
 		this->maxsize = maxsize;
 
-		items.protect( allocVector(VECSXP, maxsize) );
+		items.protect( Rf_allocVector(VECSXP, maxsize) );
 		SETLENGTH(items, 0);
 
-		names.protect( allocVector(STRSXP, maxsize) );
+		names.protect( Rf_allocVector(STRSXP, maxsize) );
 		SETLENGTH(names, 0);
 
-		setAttrib(items, R_NamesSymbol, names);
+		Rf_setAttrib(items, R_NamesSymbol, names);
 
 		initialized = true;
 	}
@@ -365,24 +365,24 @@ public:
 		SET_VECTOR_ELT(items, pos, item);
 		SETLENGTH(items, pos+1);
 
-		SET_STRING_ELT(names, pos, mkChar(name.c_str()));
+		SET_STRING_ELT(names, pos, Rf_mkChar(name.c_str()));
 		SETLENGTH(names, pos+1);
 	}
 
 	void pushback(string name, char* item) {
-		pushback(name, mkString(item));
+		pushback(name, Rf_mkString(item));
 	}
 
 	void pushback(string name, string item) {
-		pushback(name, mkString(item.c_str()));
+		pushback(name, Rf_mkString(item.c_str()));
 	}
 
 	void pushback(string name, double item) {
-		pushback(name, ScalarReal(item));
+		pushback(name, Rf_ScalarReal(item));
 	}
 
 	void pushback(string name, int item) {
-		pushback(name, ScalarInteger(item));
+		pushback(name, Rf_ScalarInteger(item));
 	}
 
 	void set(string name, SEXP item, int pos) {
@@ -393,16 +393,16 @@ public:
 			throw msk_exception("Internal SEXP_Vector failed to place an element");
 
 		SET_VECTOR_ELT(items, pos, item);
-		SET_STRING_ELT(names, pos, mkChar(name.c_str()));
+		SET_STRING_ELT(names, pos, Rf_mkChar(name.c_str()));
 	}
 };
 
 bool isNamedVector(SEXP object) {
-	if (!isNewList(object))
+	if (!Rf_isNewList(object))
 		return false;
 
 	if (LENGTH(object) >= 1) {
-		SEXP_handle names( getAttrib(object, R_NamesSymbol) );
+		SEXP_handle names( Rf_getAttrib(object, R_NamesSymbol) );
 		if (LENGTH(names) != LENGTH(object))
 			return false;
 	}
@@ -433,7 +433,7 @@ public:
 		this->maxsize = maxsize;
 		itemstype = STRSXP;
 
-		items.protect( allocVector(itemstype, maxsize) );
+		items.protect( Rf_allocVector(itemstype, maxsize) );
 
 		if (!static_size) {
 			SETLENGTH(items, 0);
@@ -450,7 +450,7 @@ public:
 		this->maxsize = maxsize;
 		itemstype = REALSXP;
 
-		items.protect( allocVector(itemstype, maxsize) );
+		items.protect( Rf_allocVector(itemstype, maxsize) );
 
 		if (!static_size) {
 			SETLENGTH(items, 0);
@@ -467,7 +467,7 @@ public:
 		this->maxsize = maxsize;
 		itemstype = INTSXP;
 
-		items.protect( allocVector(itemstype, maxsize) );
+		items.protect( Rf_allocVector(itemstype, maxsize) );
 
 		if (!static_size) {
 			SETLENGTH(items, 0);
@@ -508,28 +508,28 @@ public:
 		if (itemstype != STRSXP)
 			throw msk_exception("An internal SEXP_Vector experienced a pushback of the wrong type STRSXP!");
 
-		pushback(mkChar(item));
+		pushback(Rf_mkChar(item));
 	}
 
 	void pushback(string item) {
 		if (itemstype != STRSXP)
 			throw msk_exception("An internal SEXP_Vector experienced a pushback of the wrong type STRSXP!");
 
-		pushback(mkChar(item.c_str()));
+		pushback(Rf_mkChar(item.c_str()));
 	}
 
 	void pushback(double item) {
 		if (itemstype != REALSXP)
 			throw msk_exception("An internal SEXP_Vector experienced a pushback of the wrong type REALSXP!");
 
-		pushback(ScalarReal(item));
+		pushback(Rf_ScalarReal(item));
 	}
 
 	void pushback(int item) {
 		if (itemstype != INTSXP)
 			throw msk_exception("An internal SEXP_Vector experienced a pushback of the wrong type INTSXP!");
 
-		pushback(ScalarInteger(item));
+		pushback(Rf_ScalarInteger(item));
 	}
 
 	void set(SEXP item, int pos) {
@@ -701,8 +701,8 @@ public:
 //
 void list_seek_Value(SEXP *out, SEXP_LIST list, string name, bool optional=false)
 {
-	SEXP namelst = getAttrib(list, R_NamesSymbol);
-	for (int i = 0; i < length(list); i++) {
+	SEXP namelst = Rf_getAttrib(list, R_NamesSymbol);
+	for (int i = 0; i < Rf_length(list); i++) {
 		if (name == CHARACTER_ELT(namelst, i)) {
 			*out = VECTOR_ELT(list, i);
 			return;
@@ -714,8 +714,8 @@ void list_seek_Value(SEXP *out, SEXP_LIST list, string name, bool optional=false
 }
 void list_seek_Index(int *out, SEXP_LIST list, string name, bool optional=false)
 {
-	SEXP namelst = getAttrib(list, R_NamesSymbol);
-	for (int i = 0; i < length(list); i++) {
+	SEXP namelst = Rf_getAttrib(list, R_NamesSymbol);
+	for (int i = 0; i < Rf_length(list); i++) {
 		if (name == CHARACTER_ELT(namelst, i)) {
 			*out = i;
 			return;
@@ -741,22 +741,22 @@ void list_seek_NamedVector(SEXP_handle &out, SEXP_LIST list, string name, bool o
 			throw msk_exception("Variable '" + name + "' needs a non-empty definition");
 	}
 
-	if (!isNewList(val))
+	if (!Rf_isNewList(val))
 		throw msk_exception("Variable '" + name + "' should be of class List");
 
 	out.protect(val);
 }
 void validate_NamedVector(SEXP_handle &object, string name, vector<string> keywords, bool optional=false)
 {
-	if (optional && length(object)==0)
+	if (optional && Rf_length(object)==0)
 		return;
 
-	SEXP namelst = getAttrib(object, R_NamesSymbol);
-	for (int p = 0; p < length(namelst); p++) {
+	SEXP namelst = Rf_getAttrib(object, R_NamesSymbol);
+	for (int p = 0; p < Rf_length(namelst); p++) {
 		string key( CHAR(STRING_ELT(namelst, p)) );
 		bool recognized = false;
 
-		for (size_t j = 0; j < keywords.size() && !recognized; j++)
+		for (vector<string>::size_type j = 0; j < keywords.size() && !recognized; j++)
 			if (key == keywords[j])
 				recognized = true;
 
@@ -784,17 +784,17 @@ void list_seek_Numeric(SEXP_handle &out, SEXP_LIST list, string name, bool optio
 			throw msk_exception("Variable '" + name + "' needs a non-empty definition");
 	}
 
-	if (!isNumeric(val))
+	if (!Rf_isNumeric(val))
 		throw msk_exception("Variable '" + name + "' should be of class Numeric");
 
 	out.protect(val);
 }
-void validate_Numeric(SEXP_handle &object, string name, size_t nrows, bool optional=false)
+void validate_Numeric(SEXP_handle &object, string name, R_len_t nrows, bool optional=false)
 {
 	if (optional && isEmpty(object))
 		return;
 
-	if ((unsigned)length(object) != nrows)
+	if (Rf_length(object) != nrows)
 		throw msk_exception("Numeric '" + name + "' has the wrong dimensions");
 }
 
@@ -813,17 +813,17 @@ void list_seek_Character(SEXP_handle &out, SEXP_LIST list, string name, bool opt
 			throw msk_exception("Variable '" + name + "' needs a non-empty definition");
 	}
 
-	if (!isString(val))
+	if (!Rf_isString(val))
 		throw msk_exception("Variable '" + name + "' should be of class Character");
 
 	out.protect(val);
 }
-void validate_Character(SEXP_handle &object, string name, size_t nrows, bool optional=false)
+void validate_Character(SEXP_handle &object, string name, R_len_t nrows, bool optional=false)
 {
 	if (optional && isEmpty(object))
 		return;
 
-	if ((unsigned)length(object) != nrows)
+	if (Rf_length(object) != nrows)
 		throw msk_exception("Character '" + name + "' has the wrong dimensions");
 }
 
@@ -842,7 +842,7 @@ void list_seek_SparseMatrix(CHM_SP *out, SEXP_LIST list, string name, bool optio
 			throw msk_exception("Variable '" + name + "' needs a non-empty definition");
 	}
 
-	if (Matrix_isclass_csparse(val)) {
+	if (Matrix_isclass_Csparse(val)) {
 		global_SparseMatrix.init_placeholder();
 		M_as_cholmod_sparse(global_SparseMatrix, val, (Rboolean)FALSE, (Rboolean)FALSE);
 	}
@@ -850,24 +850,15 @@ void list_seek_SparseMatrix(CHM_SP *out, SEXP_LIST list, string name, bool optio
 		printwarning("Converting triplet matrix to Csparse");
 		cholmod_triplet mat;
 		M_as_cholmod_triplet(&mat, val, (Rboolean)FALSE);
-		//CHM_TR mat = AS_CHM_TR__(val);
 		global_SparseMatrix.init(M_cholmod_triplet_to_sparse(&mat, mat.nzmax, &chol));
 	}
 	else if (Matrix_isclass_dense(val)) {
 		printwarning("Converting dense matrix to Csparse");
 		cholmod_dense mat;
 		M_as_cholmod_dense(&mat, val);
-		//CHM_DN mat = AS_CHM_DN(val);
 		global_SparseMatrix.init(M_cholmod_dense_to_sparse(&mat, mat.nzmax, &chol));
-	}
-	else if (Matrix_isclass_factor(val)) {
-		printwarning("Converting factored matrix to Csparse");
-		cholmod_factor mat;
-		M_as_cholmod_factor(&mat, val);
-		//CHM_FR mat = AS_CHM_FR(val);
-		global_SparseMatrix.init(M_cholmod_factor_to_sparse(&mat, &chol));
 	} else {
-		throw msk_exception("Variable '" + name + "' should be a Matrix from the Matrix Package (preferably Csparse)");
+		throw msk_exception("Variable '" + name + "' should either be a sparse, dense or triplet Matrix from the Matrix Package (preferably sparse)");
 	}
 
 	*out = global_SparseMatrix;
@@ -884,7 +875,7 @@ void validate_SparseMatrix(CHM_SP &object, string name, size_t nrows, size_t nco
 //
 // Handling of: SCALAR
 //
-void list_seek_Scalar(double *out, SEXP list, string name, bool optional=false)
+void list_seek_Scalar(double *out, SEXP_LIST list, string name, bool optional=false)
 {
 	SEXP val = R_NilValue;
 	list_seek_Value(&val, list, name, optional);
@@ -896,7 +887,7 @@ void list_seek_Scalar(double *out, SEXP list, string name, bool optional=false)
 			throw msk_exception("Argument '" + name + "' needs a non-empty definition");
 	}
 
-	if (length(val) == 1) {
+	if (Rf_length(val) == 1) {
 		try {
 			*out = NUMERIC_ELT(val, 0);
 			return;
@@ -922,7 +913,7 @@ void list_seek_String(string *out, SEXP_LIST list, string name, bool optional=fa
 			throw msk_exception("Argument '" + name + "' needs a non-empty definition");
 	}
 
-	if (length(val) == 1) {
+	if (Rf_length(val) == 1) {
 		try {
 			*out = CHARACTER_ELT(val,0);
 			return;
@@ -948,7 +939,7 @@ void list_seek_Boolean(bool *out, SEXP_LIST list, string name, bool optional=fal
 			throw msk_exception("Argument '" + name + "' needs a non-empty definition");
 	}
 
-	if (length(val) == 1) {
+	if (Rf_length(val) == 1) {
 		try {
 			*out = BOOLEAN_ELT(val,0);
 			return;
@@ -995,11 +986,13 @@ MSKobjsensee get_objective(string sense)
 /* Enable fast typing without prefixes */
 void append_mskprefix(string &str, string prefix)
 {
-	size_t inclusion = 0, j = 0;
-	for (size_t i = 0; i < prefix.length(); i++) {
+	string::size_type prefix_size = prefix.size();
+	string::size_type inclusion = 0, j = 0;
+
+	for (string::size_type i = 0; i < prefix_size; i++) {
 		if (prefix[i] == str[j]) {
-			if (++j >= str.length()) {
-				inclusion = prefix.length();
+			if (++j >= str.size()) {
+				inclusion = prefix_size;
 				break;
 			}
 		} else {
@@ -1057,22 +1050,22 @@ void append_cone(MSKtask_t task, SEXP conevalue, int idx)
 	MSKconetypee msktype = (MSKconetypee)atoi(msktypestr);
 
 	// Convert sub type and indexing (Minus one because MOSEK indexes counts from 0, not from 1 as R)
-	int msksub[length(sub)];
-	for (int i=0; i<length(sub); i++)
+	int msksub[Rf_length(sub)];
+	for (int i=0; i<Rf_length(sub); i++)
 		msksub[i] = INTEGER_ELT(sub,i) - 1;
 
 	// Append the cone
 	errcatch( MSK_appendcone(task,
 			msktype,		/* The type of cone */
 			0.0, 			/* For future use only, can be set to 0.0 */
-			length(sub),	/* Number of variables */
+			Rf_length(sub),	/* Number of variables */
 			msksub) );		/* Variable indexes */
 }
 
-void append_initsol(MSKtask_t task, SEXP_LIST initsol, int NUMCON, int NUMVAR)
+void append_initsol(MSKtask_t task, SEXP_LIST initsol, MSKintt NUMCON, MSKintt NUMVAR)
 {
-	SEXP namelst = getAttrib(initsol, R_NamesSymbol);
-	for (int idx = 0; idx < length(initsol); idx++) {
+	SEXP namelst = Rf_getAttrib(initsol, R_NamesSymbol);
+	for (int idx = 0; idx < Rf_length(initsol); idx++) {
 		SEXP val = VECTOR_ELT(initsol, idx);
 		string name = CHAR(STRING_ELT(namelst, idx));
 		printdebug("Reading the initial solution '" + name + "'");
@@ -1277,7 +1270,7 @@ void set_parameter(MSKtask_t task, string type, string name, SEXP value)
 		return;
 	}
 
-	if (length(value) >= 2) {
+	if (Rf_length(value) >= 2) {
 		throw msk_exception("The parameter '" + name + "' had more than one element in its definition.");
 	}
 
@@ -1297,10 +1290,10 @@ void set_parameter(MSKtask_t task, string type, string name, SEXP value)
 		{
 			int mskvalue;
 
-			if (isNumeric(value))
+			if (Rf_isNumeric(value))
 				mskvalue = INTEGER_ELT(value, 0);
 
-			else if (isString(value)) {
+			else if (Rf_isString(value)) {
 				string valuestr = CHARACTER_ELT(value, 0);
 
 				// Convert value string to mosek input
@@ -1323,7 +1316,7 @@ void set_parameter(MSKtask_t task, string type, string name, SEXP value)
 
 		case MSK_PAR_DOU_TYPE:
 		{
-			if (!isNumeric(value))
+			if (!Rf_isNumeric(value))
 				throw msk_exception("The value of parameter " + name + " should be a double");
 
 			double mskvalue = NUMERIC_ELT(value, 0);
@@ -1334,7 +1327,7 @@ void set_parameter(MSKtask_t task, string type, string name, SEXP value)
 
 		case MSK_PAR_STR_TYPE:
 		{
-			if (!isString(value))
+			if (!Rf_isString(value))
 				throw msk_exception("The value of parameter " + name + " should be a string");
 
 			string mskvalue = CHARACTER_ELT(value, 0);
@@ -1350,18 +1343,18 @@ void set_parameter(MSKtask_t task, string type, string name, SEXP value)
 
 void append_parameters(MSKtask_t task, SEXP_LIST iparam, SEXP_LIST dparam, SEXP_LIST sparam) {
 	/* Set integer parameters */
-	SEXP iparnames = getAttrib(iparam, R_NamesSymbol);
-	for (MSKidxt j=0; j<length(iparam); ++j)
+	SEXP iparnames = Rf_getAttrib(iparam, R_NamesSymbol);
+	for (MSKidxt j=0; j<Rf_length(iparam); ++j)
 		set_parameter(task, "iparam", CHARACTER_ELT(iparnames,j), VECTOR_ELT(iparam,j));
 
 	/* Set double parameters */
-	SEXP dparnames = getAttrib(dparam, R_NamesSymbol);
-	for (MSKidxt j=0; j<length(dparam); ++j)
+	SEXP dparnames = Rf_getAttrib(dparam, R_NamesSymbol);
+	for (MSKidxt j=0; j<Rf_length(dparam); ++j)
 		set_parameter(task, "dparam", CHARACTER_ELT(dparnames,j), VECTOR_ELT(dparam,j));
 
 	/* Set string parameters */
-	SEXP sparnames = getAttrib(sparam, R_NamesSymbol);
-	for (MSKidxt j=0; j<length(sparam); ++j)
+	SEXP sparnames = Rf_getAttrib(sparam, R_NamesSymbol);
+	for (MSKidxt j=0; j<Rf_length(sparam); ++j)
 		set_parameter(task, "sparam", CHARACTER_ELT(sparnames,j), VECTOR_ELT(sparam,j));
 }
 
@@ -1648,8 +1641,8 @@ void msk_setup(Task_handle &task,
 	int NUMANZ = A->nzmax;
 	int NUMCON = A->nrow;
 	int NUMVAR = A->ncol;
-	int NUMINTVAR = length(intsub);
-	int NUMCONES  = length(cones);
+	int NUMINTVAR = Rf_length(intsub);
+	int NUMCONES  = Rf_length(cones);
 
 	/* Matrix A */
 	if (A->itype == CHOLMOD_LONG)
@@ -1904,7 +1897,7 @@ public:
 
 	//
 	// Data definition (intentionally kept close to R types)
-	// Note: 'size_t' can hold 'MSKintt' assuming non-negativity, but 'size_t' is incomparable to 'MSKint64t'
+	// FIXME: 'size_t' can hold 'MSKintt' assuming non-negativity, but 'size_t' is incomparable to 'MSKint64t'
 	//
 	MSKintt	numnz;
 	MSKintt	numcon;
@@ -1962,21 +1955,21 @@ public:
 		sense = get_objective(sensename);
 
 		// Objective function
-		list_seek_Numeric(c, arglist, R_ARGS.c, numvar);
+		list_seek_Numeric(c, arglist, R_ARGS.c);		validate_Numeric(c, R_ARGS.c, numvar);
 		list_seek_Scalar(&c0, arglist, R_ARGS.c0, true);
 
 		// Constraint and Variable Bounds
-		list_seek_Numeric(blc, arglist, R_ARGS.blc, numcon);
-		list_seek_Numeric(buc, arglist, R_ARGS.buc, numcon);
-		list_seek_Numeric(blx, arglist, R_ARGS.blx, numvar);
-		list_seek_Numeric(bux, arglist, R_ARGS.bux, numvar);
+		list_seek_Numeric(blc, arglist, R_ARGS.blc);	validate_Numeric(blc, R_ARGS.blc, numcon);
+		list_seek_Numeric(buc, arglist, R_ARGS.buc);	validate_Numeric(buc, R_ARGS.buc, numcon);
+		list_seek_Numeric(blx, arglist, R_ARGS.blx);	validate_Numeric(blx, R_ARGS.blx, numvar);
+		list_seek_Numeric(bux, arglist, R_ARGS.bux);	validate_Numeric(bux, R_ARGS.bux, numvar);
 
 		// Cones, Integers variables and Solutions
 		list_seek_NamedVector(cones, arglist, R_ARGS.cones, true);
 		list_seek_Numeric(intsub, arglist, R_ARGS.intsub, true);
 		list_seek_NamedVector(initsol, arglist, R_ARGS.sol, true);
-		numcones = length(cones);
-		numintvar = length(intsub);
+		numcones = Rf_length(cones);
+		numintvar = Rf_length(intsub);
 
 		// Parameters
 		list_seek_NamedVector(iparam, arglist, R_ARGS.iparam, true);
@@ -2498,8 +2491,15 @@ void init_early_exit(const char* msg) {
 	printerror(msg);
 	terminate_successfully();
 }
+} // End of namespace MSK_LVL1
+} // End of namespace MSK_LVL2
+} // End of namespace MSK_LVL3
+} // End of namespace MSK_LVL4
+
 
 SEXP mosek(SEXP arg0, SEXP arg1) {
+	using namespace MSK_INNER_LVL;
+
 	const string ARGNAMES[] = {"problem","options"};
 	const string ARGTYPES[] = {"list","list"};
 
@@ -2556,13 +2556,12 @@ SEXP mosek(SEXP arg0, SEXP arg1) {
 }
 
 SEXP mosek_clean() {
+	using namespace MSK_INNER_LVL;
+
 	// Print in case of Rf_error in previous run
 	if (!mosek_interface_termination_success) {
 		printoutput("----- MOSEK_CLEAN -----\n", typeERROR);
 	}
-
-	// TODO: We should read verbose from an 'opts' input argument, but on
-	// the other hand this recovery function should be as fail-safe as possible
 	mosek_interface_verbose = typeALL;
 
 	// Clean resources such as tasks before the environment!
@@ -2579,6 +2578,8 @@ SEXP mosek_clean() {
 }
 
 SEXP mosek_version() {
+	using namespace MSK_INNER_LVL;
+
 	MSKintt major, minor, build, revision;
 	MSK_getversion(&major, &minor, &build, &revision);
 
@@ -2591,6 +2592,8 @@ SEXP mosek_version() {
 }
 
 SEXP mosek_read(SEXP arg0, SEXP arg1) {
+	using namespace MSK_INNER_LVL;
+
 	const string ARGNAMES[] = {"filepath","options"};
 	const string ARGTYPES[] = {"string","list"};
 
@@ -2668,6 +2671,8 @@ SEXP mosek_read(SEXP arg0, SEXP arg1) {
 }
 
 SEXP mosek_write(SEXP arg0, SEXP arg1, SEXP arg2) {
+	using namespace MSK_INNER_LVL;
+
 	const string ARGNAMES[] = {"problem","filepath","options"};
 	const string ARGTYPES[] = {"named list","string","named list"};
 
@@ -2753,8 +2758,9 @@ SEXP mosek_write(SEXP arg0, SEXP arg1, SEXP arg2) {
 	return ret_val;
 }
 
-void R_init_rmosek(DllInfo *info)
-{
+void R_init_rmosek(DllInfo *info) {
+	using namespace MSK_INNER_LVL;
+
 	// Register mosek utilities to the R console
 	R_CallMethodDef callMethods[] = {
 			{"mosek", (DL_FUNC) &mosek, 2},
@@ -2777,8 +2783,9 @@ void R_init_rmosek(DllInfo *info)
 	M_R_cholmod_start(&chol);
 }
 
-void R_unload_rmosek(DllInfo *info)
-{
+void R_unload_rmosek(DllInfo *info) {
+	using namespace MSK_INNER_LVL;
+
 	// Finish cholmod environment
 	M_cholmod_finish(&chol);
 }

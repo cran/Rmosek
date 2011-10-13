@@ -14,7 +14,7 @@ mosek =
 function(problem, opts=list())
 {
   if (nargs() < 1) {
-    print(?mosek)
+    print(help("mosek", package="rmosek"))
     stop("Invalid number of arguments")
   }
 
@@ -50,7 +50,7 @@ mosek_read =
 function(modelfile, opts=list())
 {
   if (nargs() < 1) {
-    print(?mosek_read)
+    print(help("mosek_read", package="rmosek"))
     stop("Invalid number of arguments")
   }
  
@@ -71,7 +71,7 @@ mosek_write =
 function(problem, modelfile, opts=list())
 {
   if (nargs() < 2) {
-    print(?mosek_read)
+    print(help("mosek_write", package="rmosek"))
     stop("Invalid number of arguments")
   }
 

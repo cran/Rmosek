@@ -1,10 +1,21 @@
 #!/bin/sh
 
-echo "Configuring for the Windows platform"
+echo "Configuring for the Windows platform (sub-architecture: \"$R_ARCH\")"
 
-LOCALSYS_PATH=src$R_ARCH/Localsys.txt; 
+# The location the Makevars will look for definitions
+if [ x"$R_ARCH" != x ]; then
+  mkdir -p ./src$R_ARCH;
+fi;
+
+LOCALSYS_PATH=./src$R_ARCH/Localsys.txt;
+touch $LOCALSYS_PATH;
+
+# Definitions should neither be empty nor default value 
+ISDEF_PKG_MOSEKHOME='( [ x"$PKG_MOSEKHOME" != x ] && [ x"$PKG_MOSEKHOME" != x"[MOSEK_HOME_PATH]" ] )';
+ISDEF_PKG_MOSEKLIB='( [ x"$PKG_MOSEKLIB" != x ] && [ x"$PKG_MOSEKLIB" != x"[MOSEK_LIB_FILE]" ] )';
 newline="
 ";
+
 
 #
 # ATTEMPT 1: READ CONFIGURATION FROM ENVIRONMENT
@@ -12,48 +23,80 @@ newline="
 PKG_MOSEKHOME=$PKG_MOSEKHOME;
 PKG_MOSEKLIB=$PKG_MOSEKLIB;
 
-if ( [ x"$PKG_MOSEKHOME" = x ] || [ x"$PKG_MOSEKHOME" = x"[MOSEK_HOME_PATH]" ] ) && \
-   ( [ x"$PKG_MOSEKLIB"  = x ] || [ x"$PKG_MOSEKLIB"  = x"[MOSEK_LIB_FILE]"  ] ); then
+if (eval $ISDEF_PKG_MOSEKHOME) || (eval $ISDEF_PKG_MOSEKLIB); then
+  echo "Found variable definitions in environment";
+fi;
 
-  #
-  # ATTEMPT 2: READ CONFIGURATION FROM LOCALSYS FILE
-  #
+
+#
+# ATTEMPT 2: READ CONFIGURATION FROM LOCALSYS FILE
+#
+if (eval ! $ISDEF_PKG_MOSEKHOME) && (eval ! $ISDEF_PKG_MOSEKLIB); then
 
   # (1) Go through all lines, 
   # (2) From those that start with PKG_MOSEKHOME=
   # (3) extract the RHS
   # (4) remove the carriage returns
   # (5) remove trailing spaces
-  PKG_MOSEKHOME=$(cat $LOCALSYS_PATH | grep "^PKG_MOSEKHOME" | sed 's/^PKG_MOSEKHOME=\(.*\)/\1/g' | sed 's/[\r]*$//g' | sed 's/[ ]*$//g');
-  PKG_MOSEKLIB=$(cat $LOCALSYS_PATH | grep "^PKG_MOSEKLIB" | sed 's/^PKG_MOSEKLIB=\(.*\)/\1/g' | sed 's/[\r]*$//g' | sed 's/[ ]*$//g');
+
+  PKG_MOSEKHOME=$(cat $LOCALSYS_PATH | grep "^PKG_MOSEKHOME" | sed -E 's/^PKG_MOSEKHOME=(.*)/\1/g' | sed 's/[\r]*$//g' | sed 's/[ ]*$//g' | sed 's/\"//g');
+  PKG_MOSEKLIB=$(cat $LOCALSYS_PATH | grep "^PKG_MOSEKLIB" | sed -E 's/^PKG_MOSEKLIB=(.*)/\1/g' | sed 's/[\r]*$//g' | sed 's/[ ]*$//g' | sed 's/\"//g');
   
+  if (eval $ISDEF_PKG_MOSEKHOME) || (eval $ISDEF_PKG_MOSEKLIB); then
+    echo "Found variable definitions in $LOCALSYS_PATH file";
+  fi;
 fi;
 
-if ( [ x"$PKG_MOSEKHOME" = x ] || [ x"$PKG_MOSEKHOME" = x"[MOSEK_HOME_PATH]" ] ) && \
-   ( [ x"$PKG_MOSEKLIB"  = x ] || [ x"$PKG_MOSEKLIB"  = x"[MOSEK_LIB_FILE]"  ] ); then
-   
-  #
-  # ATTEMPT 3: GUESS CONFIGURATION FROM "mosek" command
-  #
-  echo "Guessing compilation parameters from the location of mosek.exe in Windows CMD";
-  
-  PKG_MOSEKEXE_LIST="$(where mosek)";
-  PKG_MOSEKEXE=$(echo "$PKG_MOSEKEXE_LIST" | cut -d "$newline" -f 1);
-  PKG_MOSEKEXE_LENGTH=$(expr length "$PKG_MOSEKEXE");
-  PKG_MOSEKEXE_POSTFIX_LENGTH=$(expr length "\bin\mosek.exe");
 
-  PKG_MOSEKHOME_LENGTH=$(expr $PKG_MOSEKEXE_LENGTH - $PKG_MOSEKEXE_POSTFIX_LENGTH);
-  PKG_MOSEKHOME=$(expr substr "$PKG_MOSEKEXE" 1 $PKG_MOSEKHOME_LENGTH);
+#
+# ATTEMPT 3: GUESS CONFIGURATION FROM "mosek" command
+#
+if (eval ! $ISDEF_PKG_MOSEKHOME) && (eval ! $ISDEF_PKG_MOSEKLIB); then
 
-  PKG_MOSEKLIBPATH_LIST="$(where /R "$PKG_MOSEKHOME" "mosek*.lib")";
-  PKG_MOSEKLIBPATH=$(echo "$PKG_MOSEKLIBPATH_LIST" | cut -d "$newline" -f 1);
-  PKG_MOSEKLIBPATH_LENGTH=$(expr length "$PKG_MOSEKLIBPATH");
-  PKG_MOSEKLIBPATH_PREFIX_LENGTH=$(expr length "$PKG_MOSEKHOME\bin\\");
-  PKG_MOSEKLIBPATH_POSTFIX_LENGTH=$(expr length ".lib");
+  # (1) Find the full path of all executables 'mosek' on PATH
+  # (2) Extract the first one
+  # (3) Remove the latter part '\bin\mosek.exe'
+  PKG_MOSEKHOME=$(where mosek | cut -d "$newline" -f 1 | sed 's/\\bin\\mosek.exe*$//');
 
-  PKG_MOSEKLIB_LENGTH=$(expr $PKG_MOSEKLIBPATH_LENGTH - $PKG_MOSEKLIBPATH_PREFIX_LENGTH - $PKG_MOSEKLIBPATH_POSTFIX_LENGTH);
-  PKG_MOSEKLIB=$(expr substr "$PKG_MOSEKLIBPATH" $(expr $PKG_MOSEKLIBPATH_PREFIX_LENGTH + 1) $PKG_MOSEKLIB_LENGTH);
-  
+  # (1) Go through all mosek library files
+  # (2) From those that does not have additional specifiers (integers/underscores allowed)
+  # (3) Extract the integers/underscores if any, and add prefix 'mosek'
+  PKG_MOSEKLIB=$(where /R "$PKG_MOSEKHOME" "mosek*.lib" | grep -E 'mosek([0-9,_]*).lib*$' | sed -E 's/(.*)mosek([0-9,_]*).lib/mosek\2/g');  
+
+  if (eval $ISDEF_PKG_MOSEKHOME) || (eval $ISDEF_PKG_MOSEKLIB); then 
+    echo "Guessed variable definitions from command 'mosek' in Windows CMD";
+  fi; 
+fi;
+
+
+#
+# EXIT IF A CONFIGURATION HAVE NOT BEEN READ
+#
+if (eval ! $ISDEF_PKG_MOSEKHOME) && (eval ! $ISDEF_PKG_MOSEKLIB); then
+  # No ref to argument configure-vars (configure.vars) on Windows (not supported)
+  echo "*** No variable 'PKG_MOSEKHOME' in environment ***";
+  echo "*** No variable 'PKG_MOSEKHOME' in $LOCALSYS_PATH file ***";
+  echo "*** Could not guess variable 'PKG_MOSEKHOME' from command 'mosek' in Windows CMD ***";
+  exit 1;
+fi;
+
+if (eval ! $ISDEF_PKG_MOSEKHOME); then
+  echo "*** Variable 'PKG_MOSEKHOME' was not found here ***";
+  exit 1;
+fi;
+
+if (eval ! $ISDEF_PKG_MOSEKLIB); then
+  echo "*** Variable 'PKG_MOSEKLIB' was not found here ***";
+  exit 1;
+fi;
+
+
+#
+# VERIFY 'PKG_MOSEKHOME' AS A DIRECTORY
+#
+if [ ! -d "$PKG_MOSEKHOME" ]; then
+  echo "*** Variable 'PKG_MOSEKHOME' is not a directory: $PKG_MOSEKHOME ***";
+  exit 1;
 fi;
 
 
