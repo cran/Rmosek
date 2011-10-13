@@ -2,17 +2,12 @@
 
 echo "Configuring for the Windows platform (sub-architecture: \"$R_ARCH\")"
 
-# Run the configure_script.R
-if [ x"$R_HOME" != x ]; then
-  $("$R_HOME/bin/Rscript" ./configure_script.R) 
-fi;
-
 # The location the Makevars will look for definitions
 if [ x"$R_ARCH" != x ]; then
-  mkdir -p ./src/setup$R_ARCH;
+  mkdir -p ./src$R_ARCH;
 fi;
 
-LOCALSYS_PATH=./src/setup$R_ARCH/Localsys.txt;
+LOCALSYS_PATH=./src$R_ARCH/Localsys.txt;
 touch $LOCALSYS_PATH;
 
 # Definitions should neither be empty nor default value 

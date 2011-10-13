@@ -49,29 +49,3 @@ bool Matrix_isclass_dense(SEXP x);
  "ngRMatrix", "nsRMatrix", "ntRMatrix",		\
  "zgRMatrix", "zsRMatrix", "ztRMatrix"
 #endif
-
-/*
- * Copied from init.c (rev.2718) to support as_cholmod_triplet
- */
-static const SEXP Matrix_DimSym = Rf_install("Dim");
-static const SEXP Matrix_iSym = Rf_install("i");
-static const SEXP Matrix_jSym = Rf_install("j");
-static const SEXP Matrix_xSym = Rf_install("x");
-static const SEXP Matrix_uploSym = Rf_install("uplo");
-static const SEXP Matrix_diagSym = Rf_install("diag");
-
-/*
- * Copied from Mutils.h (rev.2718) to support as_cholmod_triplet
- */
-#define uplo_P(_x_) CHAR(STRING_ELT(GET_SLOT(_x_, Matrix_uploSym), 0))
-#define diag_P(_x_) CHAR(STRING_ELT(GET_SLOT(_x_, Matrix_diagSym), 0))
-
-/*
- * Copied from Mutils.h (rev.2718) to support M_Matrix_check_class_etc
- */
-#ifdef ENABLE_NLS
-#include <libintl.h>
-#define _(String) dgettext ("Matrix", String)
-#else
-#define _(String) (String)
-#endif

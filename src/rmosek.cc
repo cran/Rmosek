@@ -17,8 +17,8 @@
 //
 
 #define R_NO_REMAP
-#include "msg_system.h"
-#include "rmsk_namespace.h"
+#include <R_ext/Rdynload.h>
+
 #include "local_stubs.h"
 #include "mosek.h"
 
@@ -42,8 +42,12 @@ extern "C"
 	void R_unload_rmosek(DllInfo *info);
 }
 
+#define MSK_INNER_LVL MSK_LVL4::MSK_LVL3::MSK_LVL2::MSK_LVL1
 
-___RMSK_INNER_NS_START___
+namespace MSK_LVL4 {
+namespace MSK_LVL3 {
+namespace MSK_LVL2 {
+namespace MSK_LVL1 {
 
 // TODO: Replace these typedefs with SEXP_handles. Consider the use of
 //       SEXP_LIST_handle, and so forth, to avoid unnecessary type-validations.
@@ -52,7 +56,126 @@ typedef SEXP SEXP_NUMERIC;
 typedef SEXP SEXP_CHARACTER;
 
 // Global initialization
-cholmod_common chol;		// Construct cholmod_common struct local to the mosek package
+cholmod_common chol;					    		// Construct cholmod_common struct local to the mosek package
+double mosek_interface_verbose  = NAN;				// Declare messages as pending
+int    mosek_interface_warnings = 0;				// Start warning count from zero
+bool   mosek_interface_signal_caught = false;		// Indicate whether the CTRL+C interrupt has been registered
+bool   mosek_interface_termination_success = true;	// Indicate whether the interfaced terminated properly
+
+// ------------------------------
+// RESPONSE AND EXCEPTION SYSTEM
+// ------------------------------
+
+string msk_responsecode2text(MSKrescodee r) {
+	char symname[MSK_MAX_STR_LEN];
+	char desc[MSK_MAX_STR_LEN];
+
+	if (MSK_getcodedesc(r, symname, desc) == MSK_RES_OK) {
+		return string(symname) + ": " + string(desc) + "";
+	} else {
+		return "The response code could not be identified";
+	}
+}
+
+struct msk_response {
+public:
+	double code;
+	string msg;
+
+	msk_response(MSKrescodee r) {
+		code = (double)r;
+		msg = msk_responsecode2text(r);
+	}
+
+	msk_response(const string &msg) :
+		code(R_NaN), msg(msg) {}
+
+	msk_response(double code, const string &msg) :
+		code(code), msg(msg) {}
+};
+
+struct msk_exception : public runtime_error {
+public:
+	const double code;
+
+	// Used for MOSEK errors with response codes
+	msk_exception(const msk_response &res) : runtime_error(res.msg), code(res.code)
+	{}
+
+	// Used for interface errors without response codes
+	msk_exception(const string &msg) : runtime_error(msg), code(R_NaN)
+	{}
+
+	msk_response getresponse() const {
+		return msk_response(code, what());
+	}
+};
+
+// ------------------------------
+// PRINTING SYSTEM
+// ------------------------------
+enum verbosetype { typeERROR=1, typeMOSEK=2, typeWARNING=3, typeINFO=4, typeDEBUG=50, typeALL=100 };
+vector<string>      mosek_pendingmsg_str;
+vector<verbosetype> mosek_pendingmsg_type;
+
+void printoutput(string str, verbosetype strtype) {
+	if (isnan(mosek_interface_verbose)) {
+		mosek_pendingmsg_str.push_back(str);
+		mosek_pendingmsg_type.push_back(strtype);
+
+	} else if (mosek_interface_verbose >= strtype) {
+		if (typeERROR == strtype)
+			REprintf(str.c_str());
+		else
+			Rprintf(str.c_str());
+	}
+}
+
+void printerror(string str) {
+	printoutput("ERROR: " + str + "\n", typeERROR);
+}
+
+void printwarning(string str) {
+	printoutput("WARNING: " + str + "\n", typeWARNING);
+	mosek_interface_warnings++;
+}
+
+void printinfo(string str) {
+	printoutput(str + "\n", typeINFO);
+}
+
+void printdebug(string str) {
+	printoutput(str + "\n", typeDEBUG);
+}
+
+void printdebugdata(string str) {
+	printoutput(str, typeDEBUG);
+}
+
+void printpendingmsg() {
+	if (mosek_pendingmsg_str.size() != mosek_pendingmsg_type.size())
+		throw msk_exception("Error in handling of pending messages");
+
+	for (vector<string>::size_type i=0; i<mosek_pendingmsg_str.size(); i++) {
+		printoutput(mosek_pendingmsg_str[i], mosek_pendingmsg_type[i]);
+	}
+
+	mosek_pendingmsg_str.clear();
+	mosek_pendingmsg_type.clear();
+}
+
+// This function translates MOSEK response codes into msk_exceptions.
+void errcatch(MSKrescodee r, string str) {
+	if (r != MSK_RES_OK) {
+		if (!str.empty())
+			printerror(str);
+
+		throw msk_exception(r);
+	}
+}
+void errcatch(MSKrescodee r) {
+	errcatch(r, "");
+}
 
 // ------------------------------
 // R-UTILS AND HELPERS
@@ -520,6 +643,54 @@ public:
 	}
 } global_task;
 
+/* This class handles the Csparse Matrix resource from the Matrix Package */
+class CHM_SP_handle {
+private:
+	bool initialized;
+
+	CHM_SP cpointer;
+	bool cholmod_allocated;
+
+	// Overwrite copy constructor and provide no implementation
+	CHM_SP_handle(const CHM_SP_handle& that);
+
+public:
+	CHM_SP_handle() 	 { initialized = false; }
+	operator CHM_SP() 	 { return cpointer; }
+	CHM_SP operator ->() { return cpointer; }
+
+	void init_placeholder() {
+		if (initialized)
+			throw msk_exception("No support for multiple sparse matrices yet!");
+
+		cpointer = new cholmod_sparse;
+		cholmod_allocated = false;
+		initialized = true;
+	}
+
+	void init(CHM_SP csparse) {
+		if (initialized)
+			throw msk_exception("No support for multiple sparse matrices yet!");
+
+		printdebug("Initializing CHM_SP_handle");
+		cpointer = csparse;
+		cholmod_allocated = true;
+		initialized = true;
+	}
+
+	~CHM_SP_handle() {
+		if (initialized) {
+			printdebug("Removing a sparse matrix");
+
+			if (cholmod_allocated) {
+				M_cholmod_free_sparse(&cpointer, &chol);
+			} else {
+				delete cpointer;
+			}
+			initialized = false;
+		}
+	}
+} global_SparseMatrix;
 
 // ------------------------------
 // R-UTILS AND HELPERS
@@ -657,6 +828,51 @@ void validate_Character(SEXP_handle &object, string name, R_len_t nrows, bool op
 }
 
 //
+// Handling of: SPARSEMATRIX
+//
+void list_seek_SparseMatrix(CHM_SP *out, SEXP_LIST list, string name, bool optional=false)
+{
+	SEXP val = R_NilValue;
+	list_seek_Value(&val, list, name, optional);
+
+	if (isEmpty(val)) {
+		if (optional)
+			return;
+		else
+			throw msk_exception("Variable '" + name + "' needs a non-empty definition");
+	}
+
+	if (Matrix_isclass_Csparse(val)) {
+		global_SparseMatrix.init_placeholder();
+		M_as_cholmod_sparse(global_SparseMatrix, val, (Rboolean)FALSE, (Rboolean)FALSE);
+	}
+	else if (Matrix_isclass_triplet(val)) {
+		printwarning("Converting triplet matrix to Csparse");
+		cholmod_triplet mat;
+		M_as_cholmod_triplet(&mat, val, (Rboolean)FALSE);
+		global_SparseMatrix.init(M_cholmod_triplet_to_sparse(&mat, mat.nzmax, &chol));
+	}
+	else if (Matrix_isclass_dense(val)) {
+		printwarning("Converting dense matrix to Csparse");
+		cholmod_dense mat;
+		M_as_cholmod_dense(&mat, val);
+		global_SparseMatrix.init(M_cholmod_dense_to_sparse(&mat, mat.nzmax, &chol));
+	} else {
+		throw msk_exception("Variable '" + name + "' should either be a sparse, dense or triplet Matrix from the Matrix Package (preferably sparse)");
+	}
+
+	*out = global_SparseMatrix;
+}
+void validate_SparseMatrix(CHM_SP &object, string name, size_t nrows, size_t ncols, bool optional=false)
+{
+	if (optional && !object)
+		return;
+
+	if (object->nrow != nrows || object->ncol != ncols)
+		throw msk_exception("SparseMatrix '" + name + "' has the wrong dimensions");
+}
+
+//
 // Handling of: SCALAR
 //
 void list_seek_Scalar(double *out, SEXP_LIST list, string name, bool optional=false)
@@ -680,32 +896,6 @@ void list_seek_Scalar(double *out, SEXP_LIST list, string name, bool optional=fa
 	}
 
 	throw msk_exception("Argument '" + name + "' should be a Scalar");
-}
-
-//
-// Handling of: INTEGER
-//
-void list_seek_Integer(int *out, SEXP_LIST list, string name, bool optional=false)
-{
-	SEXP val = R_NilValue;
-	list_seek_Value(&val, list, name, optional);
-
-	if (isEmpty(val)) {
-		if (optional)
-			return;
-		else
-			throw msk_exception("Argument '" + name + "' needs a non-empty definition");
-	}
-
-	if (Rf_length(val) == 1) {
-		try {
-			*out = INTEGER_ELT(val, 0);
-			return;
-		}
-		catch (msk_exception const& e) {}
-	}
-
-	throw msk_exception("Argument '" + name + "' should be an Integer");
 }
 
 //
@@ -782,12 +972,10 @@ string getspecs_sense(MSKobjsensee sense)
 /* This function interprets string "sense"  */
 MSKobjsensee get_objective(string sense)
 {
-	strtoupper(sense);
-
-	if (sense == "MIN" || sense == "MINIMIZE") {
+	if (sense == "min" || sense == "minimize") {
 		return MSK_OBJECTIVE_SENSE_MINIMIZE;
 
-	} else if (sense == "MAX" || sense == "MAXIMIZE") {
+	} else if (sense == "max" || sense == "maximize") {
 		return MSK_OBJECTIVE_SENSE_MAXIMIZE;
 
 	} else {
@@ -1442,498 +1630,49 @@ void msk_getresponse(SEXP &res, MSKrescodee r, bool overwrite=true) {
 }
 */
 
-// ------------------------------
-// STRUCTS OF INPUT DATA
-// ------------------------------
-
-/* Matrix formats:
- *  - pkgMatrix: 	An object from package 'Matrix'
- *  - simple: 		A package-independent input format using simple types
- *
- * COO: Coordinate matrix (aka triplet)
- * CSC: Compressed sparse column matrix
- * DNS: Dense matrix (we do not encourage its usage) */
-enum matrixformat_enum { pkgMatrixCOO, pkgMatrixCSC, simple_matrixCOO };
-
-/* This function explains the solution items of a MOSEK solution type. */
-matrixformat_enum get_matrixformat(string name)
-{
-	strtoupper(name);
-
-	if (name.empty() || name == "COO" || name == "PKGMATRIX:COO") {
-
-		// FIXME: Can this be done any better?
-		#if R_VERSION <= R_Version(2, 10, 0)
-			printwarning("The option matrixformat='COO' is not supported by this version of R. Changing to 'CSC'..");
-			return pkgMatrixCSC;
-		#endif
-		return pkgMatrixCOO;
-
-	} else if (name == "CSC" || name == "PKGMATRIX:CSC") {
-		return pkgMatrixCSC;
-
-	} else if (name == "SIMPLE:COO") {
-		return simple_matrixCOO;
-	}
-
-	throw msk_exception("Option 'matrixformat' must be either 'COO' (coordinate/triplet), 'CSC' (compressed sparse column) or 'simple:COO' (package Matrix independent coordinate/triplet)");
-}
-
-class matrix_type {
-public:
-	// Common data definition
-	virtual size_t nrow() = 0;
-	virtual size_t ncol() = 0;
-	virtual size_t nnz() = 0;
-	virtual bool isempty() = 0;
-
-	// Common interface functions
-	virtual void R_read(SEXP val, string name) = 0;
-	virtual void R_write(SEXP_handle &val) = 0;
-	virtual void MOSEK_read(Task_handle &task) = 0;
-	virtual void MOSEK_write(Task_handle &task) = 0;
-
-	// Virtual destructor propagate calls to derived classes
-	virtual ~matrix_type() {}
-};
-
-class pkgMatrixCSC_type : public matrix_type {
-private:
-	// Currently only one instance is supported
-	static bool initialized;
-	static bool cholmod_allocated;
-	static CHM_SP matrix;
-
-public:
-
-	~pkgMatrixCSC_type() {
-		if (initialized) {
-			printdebug("Removing a pkgMatrixCSC_type");
-
-			if (cholmod_allocated) {
-				M_cholmod_free_sparse(&matrix, &chol);
-			} else {
-				delete matrix;
-			}
-			initialized = false;
-		}
-	}
-
-	size_t nrow() {
-		return matrix->nrow;
-	}
-	size_t ncol() {
-		return matrix->ncol;
-	}
-	size_t nnz() {
-		return matrix->nzmax;
-	}
-	bool isempty() {
-		return (!initialized || nnz() == 0 || nrow() == 0 || ncol() == 0);
-	}
-
-	void R_read(SEXP val, string name) {
-		if (initialized) {
-			throw msk_exception("Internal error in pkgMatrixCSC_type::R_read, a matrix was already loaded");
-		}
-
-		// Read a column compressed sparse matrix using package Matrix
-		if (Matrix_isclass_Csparse(val)) {
-			cholmod_allocated = false;
-
-			matrix = new cholmod_sparse; initialized = true;
-			M_as_cholmod_sparse(matrix, val, (Rboolean)FALSE, (Rboolean)FALSE);
-		}
-		else {
-			cholmod_allocated = true;
-
-			if (Matrix_isclass_triplet(val)) {
-				printwarning("Converting triplet to sparse matrix in Matrix Package");
-
-				cholmod_triplet temp;
-				M_as_cholmod_triplet(&temp, val, (Rboolean)FALSE);
-
-				matrix = M_cholmod_triplet_to_sparse(&temp, temp.nzmax, &chol);
-				initialized = true;
-			}
-			else if (Matrix_isclass_dense(val)) {
-				printwarning("Converting dense to sparse matrix in Matrix Package");
-
-				cholmod_dense temp;
-				M_as_cholmod_dense(&temp, val);
-
-				matrix = M_cholmod_dense_to_sparse(&temp, temp.nzmax, &chol);
-				initialized = true;
-			}
-			else {
-				throw msk_exception("Variable '" + name + "' should either be a list, or a sparse/triplet/dense matrix from the Matrix Package (preferably sparse)");
-			}
-		}
-
-		// Verify sparse matrix
-		if (matrix->itype == CHOLMOD_LONG)
-			if (sizeof(MSKlidxt) != sizeof(UF_long))
-				throw msk_exception("Matrix from package 'Matrix' has wrong itype");
-
-		if (matrix->xtype != CHOLMOD_REAL)
-			throw msk_exception("Matrix from package 'Matrix' has wrong xtype");
-
-		if (matrix->dtype != CHOLMOD_DOUBLE)
-			throw msk_exception("Matrix from package 'Matrix' has wrong dtype");
-
-		if (matrix->sorted == false)
-			throw msk_exception("Matrix from package 'Matrix' is not sorted");
-
-		if (matrix->packed == false)
-			throw msk_exception("Matrix from package 'Matrix' is not packed");
-	}
-
-
-	void R_write(SEXP_handle &val) {
-		if (!initialized) {
-			throw msk_exception("Internal error in pkgMatrixCSC_type::R_write, a matrix was not loaded");
-		}
-
-		val.protect( M_chm_sparse_to_SEXP(matrix, 0, 0, 0, NULL, R_NilValue) );
-	}
-
-
-	void MOSEK_read(Task_handle &task) {
-		if (initialized) {
-			throw msk_exception("Internal error in pkgMatrixCSC_type::MOSEK_read, a matrix was already loaded");
-		}
-
-		printdebug("Started reading MOSEK column compressed sparse format");
-
-		MSKintt nzmax, nrow, ncol;
-		errcatch( MSK_getnumanz(task, &nzmax) );
-		errcatch( MSK_getnumcon(task, &nrow) );
-		errcatch( MSK_getnumvar(task, &ncol) );
-
-		matrix = M_cholmod_allocate_sparse(nrow, ncol, nzmax, true, true, 0, CHOLMOD_REAL, &chol);
-		cholmod_allocated = true;	initialized = true;
-
-		MSKintt *ptrb = (int*)matrix->p;
-		MSKlidxt *sub = (int*)matrix->i;
-		MSKrealt *val = (double*)matrix->x;
-		MSKintt surp[1] = {nzmax};
-
-		errcatch( MSK_getaslice(task, MSK_ACC_VAR, 0, ncol, nzmax, surp,
-				ptrb, ptrb+1, sub, val) );
-	}
-
-
-	void MOSEK_write(Task_handle &task) {
-		if (!initialized) {
-			throw msk_exception("Internal error in pkgMatrixCSC_type::MOSEK_write, a matrix was not loaded");
-		}
-
-		MSKlidxt *aptr = (MSKlidxt*)matrix->p;
-		MSKlidxt *asub = (MSKlidxt*)matrix->i;
-		double *aval = (double*)matrix->x;
-
-		for (MSKidxt j=0; j < (MSKidxt)matrix->ncol; ++j)
-		{
-			/* Input column j of A */
-			errcatch( MSK_putavec(task,
-						MSK_ACC_VAR, 		/* Input columns of A.*/
-						j, 					/* Variable (column) index.*/
-						aptr[j+1]-aptr[j],	/* Number of non-zeros in column j.*/
-						asub+aptr[j], 		/* Pointer to row indexes of column j.*/
-						aval+aptr[j])); 	/* Pointer to Values of column j.*/
-		}
-	}
-} global_pkgMatrix_CSC;
-
-CHM_SP pkgMatrixCSC_type::matrix = NULL;
-bool pkgMatrixCSC_type::initialized = false;
-bool pkgMatrixCSC_type::cholmod_allocated = false;
-
-
-class pkgMatrixCOO_type : public matrix_type {
-private:
-	// Currently only one instance is supported
-	static bool initialized;
-	static bool cholmod_allocated;
-	static CHM_TR matrix;
-
-public:
-
-	~pkgMatrixCOO_type() {
-		if (initialized) {
-			printdebug("Removing a pkgMatrixCOO_type");
-
-			if (cholmod_allocated) {
-				M_cholmod_free_triplet(&matrix, &chol);
-			} else {
-				delete matrix;
-			}
-			initialized = false;
-		}
-	}
-
-	size_t nrow() {
-		return matrix->nrow;
-	}
-	size_t ncol() {
-		return matrix->ncol;
-	}
-	size_t nnz() {
-		return matrix->nnz;
-	}
-	bool isempty() {
-		return (!initialized || nnz() == 0 || nrow() == 0 || ncol() == 0);
-	}
-
-	void R_read(SEXP val, string name) {
-		if (initialized) {
-			throw msk_exception("Internal error in pkgMatrixCOO_type::R_read, a matrix was already loaded");
-		}
-
-		// Read a coordinate sparse matrix using package Matrix
-		if (Matrix_isclass_triplet(val)) {
-			cholmod_allocated = false;
-
-			matrix = new cholmod_triplet; initialized = true;
-			M_as_cholmod_triplet(matrix, val, (Rboolean)FALSE);
-		}
-		else {
-			// TODO: No function M_cholmod_dense_to_triplet available in package Matrix
-		}
-
-		// Verify sparse matrix
-		if (matrix->itype == CHOLMOD_LONG)
-			if (sizeof(MSKlidxt) != sizeof(UF_long))
-				throw msk_exception("Matrix from package 'Matrix' has wrong itype");
-
-		if (matrix->xtype != CHOLMOD_REAL)
-			throw msk_exception("Matrix from package 'Matrix' has wrong xtype");
-
-		if (matrix->dtype != CHOLMOD_DOUBLE)
-			throw msk_exception("Matrix from package 'Matrix' has wrong dtype");
-	}
-
-
-	void R_write(SEXP_handle &val) {
-		if (!initialized) {
-			throw msk_exception("Internal error in pkgMatrixCOO_type::R_write, a matrix was not loaded");
-		}
-
-		val.protect( M_chm_triplet_to_SEXP(matrix, 0, 0, 0, NULL, R_NilValue) );
-	}
-
-
-	void MOSEK_read(Task_handle &task) {
-		if (initialized) {
-			throw msk_exception("Internal error in pkgMatrixCOO_type::MOSEK_read, a matrix was already loaded");
-		}
-
-		printdebug("Started reading MOSEK coordinate sparse format");
-
-		MSKintt nzmax, nrow, ncol;
-		errcatch( MSK_getnumanz(task, &nzmax) );
-		errcatch( MSK_getnumcon(task, &nrow) );
-		errcatch( MSK_getnumvar(task, &ncol) );
-
-		matrix = M_cholmod_allocate_triplet(nrow, ncol, nzmax, 0, CHOLMOD_REAL, &chol);
-		cholmod_allocated = true;	initialized = true;
-
-		MSKidxt *pi = (MSKidxt*)matrix->i;
-		MSKidxt *pj = (MSKidxt*)matrix->j;
-		MSKrealt *pv = (MSKrealt*)matrix->x;
-		MSKintt surp[1] = {nzmax};
-
-		errcatch( MSK_getaslicetrip(task, MSK_ACC_VAR, 0, ncol, nzmax, surp,
-				pi, pj, pv) );
-
-		matrix->nnz = nzmax;
-	}
-
-
-	void MOSEK_write(Task_handle &task) {
-		if (!initialized) {
-			throw msk_exception("Internal error in pkgMatrixCOO_type::MOSEK_write, a matrix was not loaded");
-		}
-
-		MSKidxt *pi = (MSKidxt*)matrix->i;
-		MSKidxt *pj = (MSKidxt*)matrix->j;
-		MSKrealt *pv = (MSKrealt*)matrix->x;
-
-		MSK_putaijlist(task, nnz(), pi, pj, pv);
-	}
-} global_pkgMatrix_COO;
-
-CHM_TR pkgMatrixCOO_type::matrix = NULL;
-bool pkgMatrixCOO_type::initialized = false;
-bool pkgMatrixCOO_type::cholmod_allocated = false;
-
-
-class simple_matrixCOO_type : public matrix_type {
-private:
-	bool initialized;
-
-	// Data definition (intentionally kept close to R types)
-	MSKintt _nrow;
-	MSKintt _ncol;
-	MSKintt	_nnz;
-	SEXP_handle subi;
-	SEXP_handle subj;
-	SEXP_handle valij;
-
-public:
-	// Recognised problem arguments in R
-	static const struct R_ARGS_type {
-	public:
-		vector<string> arglist;
-		const string nrow;
-		const string ncol;
-		const string subi;
-		const string subj;
-		const string valij;
-		const string dimnames;	// ignored, but enables direct input from package 'slam'
-
-		R_ARGS_type() :
-			nrow("nrow"),
-			ncol("ncol"),
-			subi("i"),
-			subj("j"),
-			valij("v"),
-			dimnames("dimnames")
-		{
-			string temp[] = {nrow, ncol, subi, subj, valij, dimnames};
-			arglist = vector<string>(temp, temp + sizeof(temp)/sizeof(string));
-		}
-	} R_ARGS;
-
-
-	// Default values of optional arguments
-	simple_matrixCOO_type() : initialized(false) {}
-	~simple_matrixCOO_type() {}
-
-
-	size_t nrow() {
-		return _nrow;
-	}
-	size_t ncol() {
-		return _ncol;
-	}
-	size_t nnz() {
-		return _nnz;
-	}
-	bool isempty() {
-		return (!initialized || nnz() == 0 || nrow() == 0 || ncol() == 0);
-	}
-
-	void R_read(SEXP_LIST object, string name) {
-		if (initialized) {
-			throw msk_exception("Internal error in simple_matrixCOO_type::R_read, a matrix was already loaded");
-		}
-
-		if (!isNamedVector(object)) {
-			throw msk_exception("Internal function simple_matrixCOO_type::R_read received an unknown request");
-		}
-		SEXP_handle arglist(object);
-
-		printdebug("Reading simple coordinate matrix");
-
-		// Read input arguments
-		list_seek_Integer(&_nrow, arglist, R_ARGS.nrow);
-		list_seek_Integer(&_ncol, arglist, R_ARGS.ncol);
-
-		list_seek_Numeric(valij, arglist, R_ARGS.valij);	_nnz = Rf_length(valij);
-		list_seek_Numeric(subi, arglist, R_ARGS.subi);		validate_Numeric(subi, R_ARGS.subi, _nnz);
-		list_seek_Numeric(subj, arglist, R_ARGS.subj);		validate_Numeric(subj, R_ARGS.subj, _nnz);
-
-		// Check for bad arguments
-		validate_NamedVector(arglist, name, R_ARGS.arglist);
-		initialized = true;
-	}
-
-	void R_write(SEXP_handle &val) {
-		if (!initialized) {
-			throw msk_exception("Internal error in simple_matrixCOO_type::R_write, no matrix was loaded");
-		}
-
-		SEXP_NamedVector mat;
-		mat.initVEC( simple_matrixCOO_type::R_ARGS.arglist.size() );
-		val.protect(mat);
-
-		mat.pushback(R_ARGS.nrow, _nrow);
-		mat.pushback(R_ARGS.ncol, _ncol);
-		mat.pushback(R_ARGS.subi, subi);
-		mat.pushback(R_ARGS.subj, subj);
-		mat.pushback(R_ARGS.valij, valij);
-	}
-
-	void MOSEK_read(Task_handle &task) {
-		if (initialized) {
-			throw msk_exception("Internal error in simple_matrixCOO_type::MOSEK_read, a matrix was already loaded");
-		}
-
-		printdebug("Started reading MOSEK matrix coordinate format");
-
-		errcatch( MSK_getnumanz(task, &_nnz) );
-		errcatch( MSK_getnumcon(task, &_nrow) );
-		errcatch( MSK_getnumvar(task, &_ncol) );
-
-		SEXP_Vector ivec;	ivec.initINT(_nnz);	subi.protect(ivec);
-		MSKidxt *pi = INTEGER(ivec);
-
-		SEXP_Vector jvec;	jvec.initINT(_nnz);	subj.protect(jvec);
-		MSKidxt *pj = INTEGER(jvec);
-
-		SEXP_Vector vvec;	vvec.initREAL(_nnz);	valij.protect(vvec);
-		MSKrealt *pv = REAL(vvec);
-
-		MSKintt surp[1] = {_nnz};
-
-		errcatch( MSK_getaslicetrip(task, MSK_ACC_VAR, 0, _ncol, _nnz, surp,
-				pi, pj, pv) );
-
-		// Convert sub indexing (Plus one because MOSEK indexes counts from 0, not from 1 as R)
-		for (int k=0; k<_nnz; k++) {
-			++pi[k];
-			++pj[k];
-		}
-		initialized = true;
-	}
-
-	void MOSEK_write(Task_handle &task) {
-		if (!initialized) {
-			throw msk_exception("Internal error in simple_matrixCOO_type::MOSEK_write, no matrix was loaded");
-		}
-
-		// Convert sub indexing (Minus one because MOSEK indexes counts from 0, not from 1 as R)
-		MSKintt msksubi[_nnz];
-		for (int i=0; i<_nnz; i++)
-			msksubi[i] = INTEGER_ELT(subi,i) - 1;
-
-		// Convert sub indexing (Minus one because MOSEK indexes counts from 0, not from 1 as R)
-		MSKintt msksubj[_nnz];
-		for (int j=0; j<_nnz; j++)
-			msksubj[j] = INTEGER_ELT(subj,j) - 1;
-
-		MSKrealt *pvalij = REAL(valij);
-
-		MSK_putaijlist(task, _nnz, msksubi, msksubj, pvalij);
-	}
-};
-const simple_matrixCOO_type::R_ARGS_type simple_matrixCOO_type::R_ARGS;
-
-
 /* This function initialize the task and sets up the problem. */
 void msk_setup(Task_handle &task,
 					   MSKobjsensee sense, SEXP_NUMERIC c, double c0,
-					   auto_ptr<matrix_type> &A,
+					   CHM_SP A,
 					   SEXP_NUMERIC blc, SEXP_NUMERIC buc,
 					   SEXP_NUMERIC blx, SEXP_NUMERIC bux,
 					   SEXP_LIST cones, SEXP_NUMERIC intsub)
 {
-	int NUMANZ = A->nnz();
-	int NUMCON = A->nrow();
-	int NUMVAR = A->ncol();
+	int NUMANZ = A->nzmax;
+	int NUMCON = A->nrow;
+	int NUMVAR = A->ncol;
 	int NUMINTVAR = Rf_length(intsub);
 	int NUMCONES  = Rf_length(cones);
+
+	/* Matrix A */
+	if (A->itype == CHOLMOD_LONG)
+		if (sizeof(MSKlidxt) != sizeof(UF_long))
+			throw msk_exception("Matrix from package 'Matrix' has wrong itype");
+
+	if (A->xtype != CHOLMOD_REAL) // ==CHOLMOD_ZOMPLEX)
+		throw msk_exception("Matrix from package 'Matrix' has wrong xtype");
+
+	if (A->dtype != CHOLMOD_DOUBLE)
+		throw msk_exception("Matrix from package 'Matrix' has wrong dtype");
+
+	if (A->sorted == false)
+		throw msk_exception("Matrix from package 'Matrix' is not sorted");
+
+	if (A->packed == false)
+		throw msk_exception("Matrix from package 'Matrix' is not packed");
+
+	// Assumes A->itype == CHOLMOD_INT:	When typecasting to MSKlidxt*
+	// Assumes A->packed == true: 		When reading A->p, otherwise use A->nz
+	MSKlidxt *aptr = (MSKlidxt*)A->p;
+
+	// Assumes A->itype == CHOLMOD_INT:		When typecasting to int*
+	// Assumes A->sorted == true;			When reading asub further down
+	MSKlidxt *asub = (MSKlidxt*)A->i;
+
+	// Assumes A->dtype == CHOLMOD_DOUBLE:	When typecasting to double*
+	// Assumes A->xtype != CHOLMOD_ZOMPLEX: When reading to A->x, otherwise use A->z
+	// Assumes A->sorted == true;			When reading aval further down
+	double *aval = (double*)A->x;
 
 	/* Bounds on constraints. */
 	MSKboundkeye bkc[NUMCON];
@@ -1984,10 +1723,15 @@ void msk_setup(Task_handle &task,
 						bkx[j],  				/* Bound key.*/
 						NUMERIC_ELT(blx,j),  	/* Numerical value of lower bound.*/
 						NUMERIC_ELT(bux,j))); 	/* Numerical value of upper bound.*/
-		}
 
-		/* Input columns of A */
-		A->MOSEK_write(task);
+			/* Input column j of A */
+			errcatch( MSK_putavec(task,
+						MSK_ACC_VAR, 		/* Input columns of A.*/
+						j, 					/* Variable (column) index.*/
+						aptr[j+1]-aptr[j],	/* Number of non-zeros in column j.*/
+						asub+aptr[j], 		/* Pointer to row indexes of column j.*/
+						aval+aptr[j])); 	/* Pointer to Values of column j.*/
+		}
 
 		/* Set the bounds on constraints.
 		 * for i=1, ...,NUMCON : blc[i] <= constraint i <= buc[i] */
@@ -2016,47 +1760,9 @@ void msk_setup(Task_handle &task,
 	}
 }
 
-
-//
-// Handling of: SPARSEMATRIX
-//
-void list_seek_SparseMatrix(auto_ptr<matrix_type> &out, SEXP_LIST list, string name, bool optional=false)
-{
-	SEXP val = R_NilValue;
-	list_seek_Value(&val, list, name, optional);
-
-	if (isEmpty(val)) {
-		if (optional)
-			return;
-		else
-			throw msk_exception("Variable '" + name + "' needs a non-empty definition");
-	}
-
-	auto_ptr<matrix_type> tempMatrix;
-
-	if (isNamedVector(val)) {
-		// Is this a simple matrix coordinate format??
-		tempMatrix.reset( new simple_matrixCOO_type );
-	} else if (Matrix_isclass_triplet(val)) {
-		// This is a sparse coordinate matrix from package Matrix
-		tempMatrix.reset( new pkgMatrixCOO_type );
-	} else {
-		// Otherwise: Try to read with package 'Matrix' and convert to compressed sparse column format
-		tempMatrix.reset( new pkgMatrixCSC_type );
-	}
-
-	tempMatrix->R_read(val, name);
-	out = tempMatrix;
-}
-void validate_SparseMatrix(auto_ptr<matrix_type> &object, string name, size_t nrows, size_t ncols, bool optional=false)
-{
-	if (optional && object->isempty())
-		return;
-
-	if (object->nrow() != nrows || object->ncol() != ncols)
-		throw msk_exception("SparseMatrix '" + name + "' has the wrong dimensions");
-}
-
+// ------------------------------
+// STRUCTS OF INPUT DATA
+// ------------------------------
 struct options_type {
 private:
 	bool initialized;
@@ -2072,17 +1778,15 @@ public:
 		const string verbose;
 		const string writebefore;
 		const string writeafter;
-		const string matrixformat;
 
 		R_ARGS_type() :
 			useparam("useparam"),
 			usesol("usesol"),
 			verbose("verbose"),
 			writebefore("writebefore"),
-			writeafter("writeafter"),
-			matrixformat("matrixformat")
+			writeafter("writeafter")
 		{
-			string temp[] = {useparam, usesol, verbose, writebefore, writeafter, matrixformat};
+			string temp[] = {useparam, usesol, verbose, writebefore, writeafter};
 			arglist = vector<string>(temp, temp + sizeof(temp)/sizeof(string));
 		}
 	} R_ARGS;
@@ -2094,7 +1798,6 @@ public:
 	double 	verbose;
 	string	writebefore;
 	string	writeafter;
-	matrixformat_enum matrixformat;
 
 	// Default values of optional arguments
 	options_type() :
@@ -2104,8 +1807,7 @@ public:
 		usesol(true),
 		verbose(10),
 		writebefore(""),
-		writeafter(""),
-		matrixformat(pkgMatrixCOO)
+		writeafter("")
 	{}
 
 
@@ -2122,16 +1824,11 @@ public:
 		mosek_interface_verbose = verbose;
 		printpendingmsg();
 
-		// Read simple input arguments
+		// Read remaining input arguments
 		list_seek_Boolean(&useparam, arglist, R_ARGS.useparam,  true);
 		list_seek_Boolean(&usesol, arglist, R_ARGS.usesol, true);
 		list_seek_String(&writebefore, arglist, R_ARGS.writebefore, true);
 		list_seek_String(&writeafter, arglist, R_ARGS.writeafter, true);
-
-		// Read matrix format
-		string matrixformat_name;
-		list_seek_String(&matrixformat_name, arglist, R_ARGS.matrixformat, true);
-		matrixformat = get_matrixformat(matrixformat_name);
 
 		// Check for bad arguments
 		validate_NamedVector(arglist, "", R_ARGS.arglist);
@@ -2211,8 +1908,7 @@ public:
 	MSKobjsensee	sense;
 	SEXP_handle 	c;
 	double 			c0;
-
-	auto_ptr<matrix_type> A;
+	CHM_SP 			A;		// TODO: Is this extra conversion necessary?  SEXP <-> CHOLMOD_SPARSE <-> MOSEK.
 	SEXP_handle 	blc;
 	SEXP_handle 	buc;
 	SEXP_handle 	blx;
@@ -2248,10 +1944,10 @@ public:
 		printdebug("Started reading R problem input");
 
 		// Constraint Matrix
-		list_seek_SparseMatrix(A, arglist, R_ARGS.A);
-		numnz = A->nnz();
-		numcon = A->nrow();
-		numvar = A->ncol();
+		list_seek_SparseMatrix(&A, arglist, R_ARGS.A);
+		numnz = A->nzmax;
+		numcon = A->nrow;
+		numvar = A->ncol;
 
 		// Objective sense
 		string sensename = "UNDEFINED";
@@ -2310,8 +2006,7 @@ public:
 		prob_val.pushback("c0", c0);
 
 		// Constraint Matrix A
-		SEXP_handle MatrixA;
-		A->R_write(MatrixA);
+		SEXP MatrixA = M_chm_sparse_to_SEXP(A, 0, 0, 0, NULL, R_NilValue);
 		prob_val.pushback("A", MatrixA);
 
 		// Constraint and variable bounds
@@ -2384,24 +2079,16 @@ public:
 		// Constraint Matrix A
 		{
 			printdebug("problem_type::MOSEK_read - Constraint matrix");
-			auto_ptr<matrix_type> tempMatrix;
 
-			switch (options.matrixformat) {
-			case pkgMatrixCOO:
-				tempMatrix.reset( new pkgMatrixCOO_type );
-				break;
-			case pkgMatrixCSC:
-				tempMatrix.reset( new pkgMatrixCSC_type );
-				break;
-			case simple_matrixCOO:
-				tempMatrix.reset( new simple_matrixCOO_type );
-				break;
-			default:
-				throw msk_exception("A matrix format was not supported");
-			}
+			global_SparseMatrix.init( M_cholmod_allocate_sparse(numcon, numvar, numnz, true, true, 0, CHOLMOD_REAL, &chol) );
+			A = (CHM_SP)global_SparseMatrix;
+			MSKintt *ptrb = (MSKintt*)A->p;
+			MSKlidxt *sub = (MSKlidxt*)A->i;
+			MSKrealt *val = (MSKrealt*)A->x;
+			MSKintt surp[1] = {numnz};
 
-			tempMatrix->MOSEK_read(task);
-			A = tempMatrix;
+			errcatch( MSK_getaslice(task, MSK_ACC_VAR, 0, numvar, numnz, surp,
+					ptrb, ptrb+1, sub, val) );
 		}
 
 		// Constraint bounds
@@ -2779,8 +2466,7 @@ void clean_globalressources() {
 	// The mosek environment 'global_env' should not be cleared, as we wish to
 	// reuse the license until mosek_clean() is called or .SO/.DLL is unloaded.
 
-	global_pkgMatrix_CSC.~pkgMatrixCSC_type();
-	global_pkgMatrix_COO.~pkgMatrixCOO_type();
+	global_SparseMatrix.~CHM_SP_handle();
 	global_task.~Task_handle();
 }
 
@@ -2805,12 +2491,14 @@ void init_early_exit(const char* msg) {
 	printerror(msg);
 	terminate_successfully();
 }
-
-___RMSK_INNER_NS_END___
+} // End of namespace MSK_LVL1
+} // End of namespace MSK_LVL2
+} // End of namespace MSK_LVL3
+} // End of namespace MSK_LVL4
 
 
 SEXP mosek(SEXP arg0, SEXP arg1) {
-	using namespace RMSK_INNER_NS;
+	using namespace MSK_INNER_LVL;
 
 	const string ARGNAMES[] = {"problem","options"};
 	const string ARGTYPES[] = {"list","list"};
@@ -2868,7 +2556,7 @@ SEXP mosek(SEXP arg0, SEXP arg1) {
 }
 
 SEXP mosek_clean() {
-	using namespace RMSK_INNER_NS;
+	using namespace MSK_INNER_LVL;
 
 	// Print in case of Rf_error in previous run
 	if (!mosek_interface_termination_success) {
@@ -2890,7 +2578,7 @@ SEXP mosek_clean() {
 }
 
 SEXP mosek_version() {
-	using namespace RMSK_INNER_NS;
+	using namespace MSK_INNER_LVL;
 
 	MSKintt major, minor, build, revision;
 	MSK_getversion(&major, &minor, &build, &revision);
@@ -2904,7 +2592,7 @@ SEXP mosek_version() {
 }
 
 SEXP mosek_read(SEXP arg0, SEXP arg1) {
-	using namespace RMSK_INNER_NS;
+	using namespace MSK_INNER_LVL;
 
 	const string ARGNAMES[] = {"filepath","options"};
 	const string ARGTYPES[] = {"string","list"};
@@ -2983,7 +2671,7 @@ SEXP mosek_read(SEXP arg0, SEXP arg1) {
 }
 
 SEXP mosek_write(SEXP arg0, SEXP arg1, SEXP arg2) {
-	using namespace RMSK_INNER_NS;
+	using namespace MSK_INNER_LVL;
 
 	const string ARGNAMES[] = {"problem","filepath","options"};
 	const string ARGTYPES[] = {"named list","string","named list"};
@@ -3071,7 +2759,7 @@ SEXP mosek_write(SEXP arg0, SEXP arg1, SEXP arg2) {
 }
 
 void R_init_rmosek(DllInfo *info) {
-	using namespace RMSK_INNER_NS;
+	using namespace MSK_INNER_LVL;
 
 	// Register mosek utilities to the R console
 	R_CallMethodDef callMethods[] = {
@@ -3096,7 +2784,7 @@ void R_init_rmosek(DllInfo *info) {
 }
 
 void R_unload_rmosek(DllInfo *info) {
-	using namespace RMSK_INNER_NS;
+	using namespace MSK_INNER_LVL;
 
 	// Finish cholmod environment
 	M_cholmod_finish(&chol);
