@@ -5,7 +5,7 @@
 # See Localsys.txt if you are sitting on the WINDOWS platform.
 #
 
-include ./$(R_ARCH)/Localsys.txt
+include ./setup$(R_ARCH)/Localsys.txt
 
 PKG_LIBS=-L$(PKG_MOSEKHOME)/bin -l$(PKG_MOSEKLIB) #-llapack -lblas -lgfortran -lc -ldl -lm
 PKG_CPPFLAGS=-I$(PKG_MOSEKHOME)/h
