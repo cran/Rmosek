@@ -1,14 +1,4 @@
 /*
- * Copied from Mutils.h (rev.2718) to support M_Matrix_check_class_etc
- */
-#ifdef ENABLE_NLS
-#include <libintl.h>
-#define _(String) dgettext ("Matrix", String)
-#else
-#define _(String) (String)
-#endif
-
-/*
  * Copied from Mutils.c (rev.2718) to support M_Matrix_check_class_etc
  */
 #if R_VERSION < R_Version(2, 13, 0)
@@ -53,6 +43,8 @@ int Matrix_check_class_and_super(SEXP x, const char **valid, SEXP rho)
 	}
 	return -1;
 }
+#else
+	#define Matrix_check_class_and_super R_check_class_and_super
 #endif
 
 /*
@@ -91,6 +83,7 @@ int Matrix_check_class_etc(SEXP x, const char **valid)
  * Introduced in revision 2713
  */
 int M_Matrix_check_class_etc(SEXP x, const char *valid[]) {
+	RMSK_INNER_NS::printdebug("Calling backported version of M_Matrix_check_class_etc");
 	return Matrix_check_class_etc(x, valid);
 }
 
