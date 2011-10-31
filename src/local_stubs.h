@@ -5,8 +5,8 @@
  * 2010-07-13	Version 0.999375-42		Based on revision 2566		Last release requiring R (>= 2.9.1)
  * 2009-10-06	Version 0.999375-31		Based on revision 2486		Last release requiring R (>= 2.9.0)
  *
- * The rmosek package works in the innermost namespace (MSK1). For any function
- * used by the rmosek package, the compiler will look for prototype declarations in
+ * The Rmosek package works in the innermost namespace (MSK1). For any function
+ * used by the Rmosek package, the compiler will look for prototype declarations in
  * this namespace. If none is found, the parent namespace is searched (MSK2),
  * then (MSK3), then (MSK4), and finally the global namespace.
  *
@@ -16,7 +16,7 @@
  * missing in "Matrix.h", by placing "fallbacks.h" in an outermore namespace.
  *
  * Notice that because of Koenig Lookup, the prototype declaration for the return
- * and argument typenames of a function makes a difference. If the rmosek package
+ * and argument typenames of a function makes a difference. If the Rmosek package
  * calls a function with argument SEXP (and SEXP was declared in MSK2), then
  * even if the function call was made from within MSK1 and there exist a
  * prototype declaration matching the function call in MSK1, the namespace

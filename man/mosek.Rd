@@ -7,7 +7,7 @@ mosek(problem, opts = list())
 \description{
   Solve an optimization problem using the MOSEK Optimization Library.
 
-  Please see the 'userguide.pdf' for a detailed introduction to this pacakge. This file is located at the root of this package:\cr \code{system.file("userguide.pdf", package="rmosek")}
+  Please see the 'userguide.pdf' for a detailed introduction to this pacakge. This file is located at the root of this package:\cr \code{system.file("userguide.pdf", package="Rmosek")}
 }
 \arguments{
 \item{problem}{The optimization problem.

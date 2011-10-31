@@ -38,8 +38,8 @@ extern "C"
 	SEXP mosek_write(SEXP arg0, SEXP arg1, SEXP arg2);
 	SEXP mosek_clean();
 	SEXP mosek_version();
-	void R_init_rmosek(DllInfo *info);
-	void R_unload_rmosek(DllInfo *info);
+	void R_init_Rmosek(DllInfo *info);
+	void R_unload_Rmosek(DllInfo *info);
 }
 
 
@@ -3070,7 +3070,7 @@ SEXP mosek_write(SEXP arg0, SEXP arg1, SEXP arg2) {
 	return ret_val;
 }
 
-void R_init_rmosek(DllInfo *info) {
+void R_init_Rmosek(DllInfo *info) {
 	using namespace RMSK_INNER_NS;
 
 	// Register mosek utilities to the R console
@@ -3085,17 +3085,17 @@ void R_init_rmosek(DllInfo *info) {
 	R_registerRoutines(info, NULL, callMethods, NULL, NULL);
 
 	// Register mosek utilities to other packages
-	R_RegisterCCallable("rmosek", "mosek", (DL_FUNC) &mosek);
-	R_RegisterCCallable("rmosek", "mosek_clean", (DL_FUNC) &mosek_clean);
-	R_RegisterCCallable("rmosek", "mosek_version", (DL_FUNC) &mosek_version);
-	R_RegisterCCallable("rmosek", "mosek_write", (DL_FUNC) &mosek_write);
-	R_RegisterCCallable("rmosek", "mosek_read", (DL_FUNC) &mosek_read);
+	R_RegisterCCallable("Rmosek", "mosek", (DL_FUNC) &mosek);
+	R_RegisterCCallable("Rmosek", "mosek_clean", (DL_FUNC) &mosek_clean);
+	R_RegisterCCallable("Rmosek", "mosek_version", (DL_FUNC) &mosek_version);
+	R_RegisterCCallable("Rmosek", "mosek_write", (DL_FUNC) &mosek_write);
+	R_RegisterCCallable("Rmosek", "mosek_read", (DL_FUNC) &mosek_read);
 
 	// Start cholmod environment
 	M_R_cholmod_start(&chol);
 }
 
-void R_unload_rmosek(DllInfo *info) {
+void R_unload_Rmosek(DllInfo *info) {
 	using namespace RMSK_INNER_NS;
 
 	// Finish cholmod environment

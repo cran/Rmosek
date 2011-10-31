@@ -1,7 +1,7 @@
 .onLoad =
 function(libname, pkgname)
 {
-  dll <- library.dynam("rmosek", pkgname) 
+  dll <- library.dynam("Rmosek", pkgname) 
  
   syms = getNativeSymbolInfo(c("mosek", "mosek_clean", "mosek_version", "mosek_read", "mosek_write"), dll)
 
@@ -14,7 +14,7 @@ mosek =
 function(problem, opts=list())
 {
   if (nargs() < 1) {
-    print(help("mosek", package="rmosek"))
+    print(help("mosek", package="Rmosek"))
     stop("Invalid number of arguments")
   }
 
@@ -50,7 +50,7 @@ mosek_read =
 function(modelfile, opts=list())
 {
   if (nargs() < 1) {
-    print(help("mosek_read", package="rmosek"))
+    print(help("mosek_read", package="Rmosek"))
     stop("Invalid number of arguments")
   }
  
@@ -71,7 +71,7 @@ mosek_write =
 function(problem, modelfile, opts=list())
 {
   if (nargs() < 2) {
-    print(help("mosek_write", package="rmosek"))
+    print(help("mosek_write", package="Rmosek"))
     stop("Invalid number of arguments")
   }
 

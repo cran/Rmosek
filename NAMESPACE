@@ -1,4 +1,4 @@
-useDynLib("rmosek")
+useDynLib("Rmosek")
 
 import(Matrix)
 

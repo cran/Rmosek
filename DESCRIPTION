@@ -1,9 +1,9 @@
-Package: rmosek
-Version: 0.9.3
+Package: Rmosek
+Version: 0.9.4
 Title: The R-to-MOSEK Optimization Interface
 Author: Henrik Alsing Friberg
 Maintainer: Henrik Alsing Friberg <haf@mosek.com>
-Description: An interface to the MOSEK Optimization Software designed to 
+Description: Rmosek is an interface to the MOSEK Optimization Software designed to 
 	solve large-scale mathematical optimization problems. MOSEK provides 
 	specialized solvers for linear programming, mixed integer programming 
 	and many types of nonlinear convex optimization problems. Trial and 
@@ -15,6 +15,6 @@ License: LGPL (>= 3)
 URL: http://rmosek.r-forge.r-project.org/, http://www.mosek.com/
 Repository: CRAN
 Repository/R-Forge/Project: rmosek
-Repository/R-Forge/Revision: 35
-Date/Publication: 2011-10-27 19:35:35
-Packaged: 2011-10-26 21:42:31 UTC; rforge
+Repository/R-Forge/Revision: 39
+Date/Publication: 2011-11-08 07:08:31
+Packaged: 2011-10-31 21:47:53 UTC; rforge
