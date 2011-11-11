@@ -49,4 +49,14 @@ namespace MSK4 {
 	#include "compatibility/fallbacks.h"
 }
 
+namespace MSK4 {
+	namespace MSK3 {
+		namespace MSK2 {
+			namespace MSK1 {
+				extern cholmod_common chol;
+			}
+		}
+	}
+}
+
 #endif /* RMSK_LOCAL_STUBS_H_ */

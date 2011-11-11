@@ -7,6 +7,7 @@
 #include <R_ext/Arith.h>
 #include <stdexcept>
 #include <string>
+#include <sstream>
 
 
 ___RMSK_INNER_NS_START___
@@ -28,6 +29,7 @@ void printinfo(std::string str);
 void printdebug(std::string str);
 void printdebugdata(std::string str);
 void printpendingmsg();
+
 
 // ------------------------------
 // RESPONSE AND EXCEPTION SYSTEM
@@ -59,6 +61,23 @@ public:
 
 void errcatch(MSKrescodee r, std::string str);
 void errcatch(MSKrescodee r);
+
+
+// ------------------------------
+// BASIC TYPE MANIPULATION
+// ------------------------------
+void strtoupper(std::string&);
+bool ispos(double);
+int scalar2int(double);
+
+template <class T>
+std::string tostring(T val)
+{
+	std::ostringstream ss;
+	ss << val;
+	return ss.str();
+}
+
 
 ___RMSK_INNER_NS_END___
 

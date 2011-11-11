@@ -70,7 +70,7 @@ The result is a named list containing the response of the MOSEK Optimization Lib
  lo1$blx <- c(0,0,0,0)
  lo1$bux <- c(Inf,10,Inf,Inf)
  rr <- mosek_write(lo1, "lo1.opf")
- if (is.null(rr) || rr$response$code != 0)
+ if (is.null(rr) || !identical(rr$response$code, 0))
    stop("Failed to write model file to current working directory")
 }
 \seealso{

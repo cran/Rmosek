@@ -1,11 +1,14 @@
-#include "msg_system.h"
+#define R_NO_REMAP
+#include "rmsk_msg_system.h"
 
 #include <R_ext/Print.h>
 #include <math.h>
 #include <vector>
+#include <limits>
 
 using std::vector;
 using std::string;
+using std::numeric_limits;
 
 
 ___RMSK_INNER_NS_START___
@@ -67,6 +70,7 @@ void printpendingmsg() {
 	mosek_pendingmsg_type.clear();
 }
 
+
 // ------------------------------
 // RESPONSE AND EXCEPTION SYSTEM
 // ------------------------------
@@ -97,6 +101,40 @@ void errcatch(MSKrescodee r, string str) {
 }
 void errcatch(MSKrescodee r) {
 	errcatch(r, "");
+}
+
+
+// ------------------------------
+// BASIC TYPE MANIPULATION
+// ------------------------------
+
+void strtoupper(string &str) {
+	string::iterator i = str.begin();
+	string::iterator end = str.end();
+
+	while (i != end) {
+	    *i = toupper((int)*i);
+	    ++i;
+	}
+}
+
+/* This function returns the sign of doubles even when incomparable (isinf true). */
+bool ispos(double x) {
+	return (copysign(1.0, x) > 0);
+}
+
+/* This function converts from the normal double type to integers (supports infinity) */
+int scalar2int(double scalar) {
+	if (isinf(scalar))
+		return numeric_limits<int>::max();
+
+	int retval = (int)scalar;
+	double err = scalar - retval;
+
+	if (err <= -1e-6 || 1e-6 <= err)
+		printwarning("A scalar with fractional value was truncated to an integer.");
+
+	return retval;
 }
 
 ___RMSK_INNER_NS_END___

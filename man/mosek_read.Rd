@@ -56,21 +56,21 @@ On success, the result contains the problem specification with all problem data.
 }
 }
 \examples{
- modelfile <- system.file(package="rmosek", "extdata", "lo1.opf")
+ modelfile <- system.file(package="Rmosek", "extdata", "lo1.opf")
  rr <- mosek_read(modelfile)
- if (is.null(rr) || rr$response$code != 0)
+ if (is.null(rr) || !identical(rr$response$code, 0))
    stop("Failed to read model file")
  rlo1 <- mosek(rr$prob)
 
- modelfile <- system.file(package="rmosek", "extdata", "milo1.opf")
+ modelfile <- system.file(package="Rmosek", "extdata", "milo1.opf")
  rr <- mosek_read(modelfile)
- if (is.null(rr) || rr$response$code != 0)
+ if (is.null(rr) || !identical(rr$response$code, 0))
    stop("Failed to read model file")
  rmilo1 <- mosek(rr$prob)
 
- modelfile <- system.file(package="rmosek", "extdata", "cqo1.opf")
+ modelfile <- system.file(package="Rmosek", "extdata", "cqo1.opf")
  rr <- mosek_read(modelfile)
- if (is.null(rr) || rr$response$code != 0)
+ if (is.null(rr) || !identical(rr$response$code, 0))
    stop("Failed to read model file")
  rcqo1 <- mosek(rr$prob)
 }

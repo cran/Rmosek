@@ -43,8 +43,8 @@ if (eval ! $ISDEF_PKG_MOSEKHOME) && (eval ! $ISDEF_PKG_MOSEKLIB); then
   # (4) remove the carriage returns
   # (5) remove trailing spaces
 
-  PKG_MOSEKHOME=$(cat $LOCALSYS_PATH | grep "^PKG_MOSEKHOME" | sed 's/^PKG_MOSEKHOME=\(.*\)/\1/g' | sed 's/'$newlineCR'//g' | sed 's/[ ]*$//g' | sed 's/\"//g');
-  PKG_MOSEKLIB=$(cat $LOCALSYS_PATH | grep "^PKG_MOSEKLIB" | sed 's/^PKG_MOSEKLIB=\(.*\)/\1/g' | sed 's/'$newlineCR'//g' | sed 's/[ ]*$//g' | sed 's/\"//g');
+  PKG_MOSEKHOME=$(cat $LOCALSYS_PATH | grep "^PKG_MOSEKHOME" | sed 's/^\([ ]*\)PKG_MOSEKHOME\([ :]*\)=\([ ]*\)\(.*\)/\4/g' | sed 's/'$newlineCR'//g' | sed 's/[ ]*$//g' | sed 's/\"//g');
+  PKG_MOSEKLIB=$(cat $LOCALSYS_PATH | grep "^PKG_MOSEKLIB" | sed 's/^\([ ]*\)PKG_MOSEKLIB\([ :]*\)=\([ ]*\)\(.*\)/\4/g' | sed 's/'$newlineCR'//g' | sed 's/[ ]*$//g' | sed 's/\"//g');
 
   if (eval $ISDEF_PKG_MOSEKHOME) || (eval $ISDEF_PKG_MOSEKLIB); then
     echo "Found variable definitions in $LOCALSYS_PATH file";
@@ -61,7 +61,7 @@ if (eval ! $ISDEF_PKG_MOSEKHOME) && (eval ! $ISDEF_PKG_MOSEKLIB); then
   # (2) Resolve symbolic links if any
   # (3) Remove the latter part 'bin/mosek*'
   PKG_MOSEKEXE=$(which mosek);
-  if [ -L $PKG_MOSEKEXE ]; then
+  if [ -L "$PKG_MOSEKEXE" ]; then
     PKG_MOSEKHOME=$(readlink $PKG_MOSEKEXE | sed 's/bin\/mosek*$//');
   else
     PKG_MOSEKHOME=$(echo $PKG_MOSEKEXE | sed 's/bin\/mosek*$//');
@@ -73,7 +73,7 @@ if (eval ! $ISDEF_PKG_MOSEKHOME) && (eval ! $ISDEF_PKG_MOSEKLIB); then
     # (2) From those whos name does not have additional specifiers (only integers/underscores allowed)
     #     and whos filetype is either .so (uname="Linux") or .dylib (uname="Darwin").
     # (3) Extract the integers/underscores if any, and add prefix 'mosek'
-    PKG_MOSEKLIB=$(find $PKG_MOSEKHOME/bin -name 'libmosek*.*' | grep '\/libmosek\([0-9,_]*\).\([so,dylib]*\)*$' | sed 's/\(.*\)libmosek\([0-9,_]*\).\([so,dylib]*\)/mosek\2/g');
+    PKG_MOSEKLIB=$(find $PKG_MOSEKHOME/bin -name 'libmosek*.*' | grep '\/libmosek\([0-9_]*\).\(so\|dylib\)*$' | sed -E 's/(.*)libmosek([0-9_]*).(so|dylib)/mosek\2/g');
 
   fi;
 
@@ -111,7 +111,7 @@ fi;
 #
 
 # Resolve symbolic links if any
-if [ -L $PKG_MOSEKHOME ]; then
+if [ -L "$PKG_MOSEKHOME" ]; then
   PKG_MOSEKHOME=$(readlink $PKG_MOSEKHOME);
 fi;
 
@@ -119,8 +119,8 @@ fi;
 REMOVESLASHES=${PKG_MOSEKHOME##*[!/]};
 PKG_MOSEKHOME=${PKG_MOSEKHOME%$REMOVESLASHES};
 
-if [ ! -d $PKG_MOSEKHOME ]; then
-  echo "*** Variable 'PKG_MOSEKHOME' is not a directory: $PKG_MOSEKHOME ***"
+if [ ! -d "$PKG_MOSEKHOME" ]; then
+  echo "*** Variable 'PKG_MOSEKHOME' is not a directory: \"$PKG_MOSEKHOME\" ***"
   exit 1
 fi;
 

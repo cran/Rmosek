@@ -16,7 +16,7 @@
  * "fallbacks.cc".
  */
 
-#include "msg_system.h"
+#include "rmsk_msg_system.h"
 #include "local_stubs.h"
 
 namespace MSK4 {
@@ -30,4 +30,14 @@ namespace MSK4 {
 		#include "Matrix_stubs.c"
 	}
 	#include "compatibility/fallbacks.cc"
+}
+
+namespace MSK4 {
+	namespace MSK3 {
+		namespace MSK2 {
+			namespace MSK1 {
+				cholmod_common chol;
+			}
+		}
+	}
 }
