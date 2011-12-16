@@ -18,12 +18,15 @@ opts 				\tab LIST		\tab (OPTIONAL)		\cr
 ..$verbose 			\tab NUMERIC 		\tab (OPTIONAL)		\cr
 ..$usesol			\tab BOOLEAN		\tab (OPTIONAL)		\cr
 ..$useparam 			\tab BOOLEAN		\tab (OPTIONAL)		\cr
+..$matrixformat 		\tab STRING		\tab (OPTIONAL)		\cr
 }}
 }
 \details{
-The \code{modelfile} should be an absolute path to a model file. 
+The \code{modelfile} should be an absolute or relative path to a model file. 
 
-The amount of information printed by the interface can be limited by \code{verbose} (default=10). Whether to read the initial solution, if one such exists in the model file, is indicated by \code{usesol} which by default is FALSE. Whether to read the full list of parameter settings, some of which may have been changed by the model file, is indicated by \code{useparam} which by default is FALSE.
+The amount of information printed by the interface can be limited by \code{verbose} (default=10). Whether to read the initial solution, if one such exists in the model file, is indicated by \code{usesol} which by default is FALSE. Whether to read the full list of parameter settings, some of which may have been defined by the model file, is indicated by \code{useparam} which by default is FALSE. 
+
+The format of the imported constraint matrix is controlled by \code{matrixformat} and can be either sparse coordinate \code{COO}, compressed sparse column \code{CSC}, or a list-based alternative \code{simple:COO}. The first two formats are based on package 'Matrix'.
 
 \tabular{ll}{
   modelfile		\tab Filepath to the model \cr
@@ -31,6 +34,7 @@ The amount of information printed by the interface can be limited by \code{verbo
   .$verbose 		\tab Output logging verbosity \cr
   .$usesol		\tab Whether to read an initial solution \cr
   .$useparam		\tab Whether to read all parameter settings \cr
+  .$matrixformat	\tab The sparse format of the constraint matrix \cr
 }
 }
 \value{
@@ -43,7 +47,7 @@ r				\tab LIST		\tab 			\cr
 ..$prob				\tab LIST		\tab 			\cr
 }}
 
-The result is a named list containing the response of the MOSEK Optimization Library when reading the model file. Note that the result can be NULL if interfacing errors are encountered.
+The result is a named list containing the response of the MOSEK Optimization Library when reading the model file. A response code of zero is the signal of success.
 
 On success, the result contains the problem specification with all problem data. This problem specification is compliant with the input specifications of function \code{\link{mosek}}.
 
@@ -58,19 +62,19 @@ On success, the result contains the problem specification with all problem data.
 \examples{
  modelfile <- system.file(package="Rmosek", "extdata", "lo1.opf")
  rr <- mosek_read(modelfile)
- if (is.null(rr) || !identical(rr$response$code, 0))
+ if (!identical(rr$response$code, 0))
    stop("Failed to read model file")
  rlo1 <- mosek(rr$prob)
 
  modelfile <- system.file(package="Rmosek", "extdata", "milo1.opf")
  rr <- mosek_read(modelfile)
- if (is.null(rr) || !identical(rr$response$code, 0))
+ if (!identical(rr$response$code, 0))
    stop("Failed to read model file")
  rmilo1 <- mosek(rr$prob)
 
  modelfile <- system.file(package="Rmosek", "extdata", "cqo1.opf")
  rr <- mosek_read(modelfile)
- if (is.null(rr) || !identical(rr$response$code, 0))
+ if (!identical(rr$response$code, 0))
    stop("Failed to read model file")
  rcqo1 <- mosek(rr$prob)
 }

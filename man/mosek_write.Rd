@@ -27,7 +27,7 @@ opts 				\tab LIST		\tab (OPTIONAL)		\cr
 \details{
 The \code{problem} should be compliant with the input specification of function \code{\link{mosek}}. Please see this function for more details.
 
-The \code{modelfile} should be an absolute path to the model file. If the file extension is \code{.opf}, the model will be written in the Optimization Problem Format. Other formats include lp, mps and mbt.
+The \code{modelfile} should be an absolute or relative path to the model file. If the file extension is \code{.opf}, the model will be written in the Optimization Problem Format. Other formats include lp, mps and mbt.
 
 The amount of information printed by the interface can be limited by \code{verbose} (default=10). Whether to write the initial solution, if one such exists in the problem description, is indicated by \code{usesol} which by default is FALSE. Whether to write the full list of parameter settings, some of which may have been specified by the problem description, is indicated by \code{useparam} which by default is FALSE.
 
@@ -49,7 +49,7 @@ r				\tab LIST		\tab 			\cr
 ....$msg			\tab STRING		\tab 			\cr
 }}
 
-The result is a named list containing the response of the MOSEK Optimization Library when writing to the model file. Note that the result can be NULL if interfacing errors are encountered.
+The result is a named list containing the response of the MOSEK Optimization Library when writing to the model file. A response code of zero is the signal of success.
 
 \tabular{lll}{
   r			\tab Result \cr
@@ -70,7 +70,7 @@ The result is a named list containing the response of the MOSEK Optimization Lib
  lo1$blx <- c(0,0,0,0)
  lo1$bux <- c(Inf,10,Inf,Inf)
  rr <- mosek_write(lo1, "lo1.opf")
- if (is.null(rr) || !identical(rr$response$code, 0))
+ if (!identical(rr$response$code, 0))
    stop("Failed to write model file to current working directory")
 }
 \seealso{

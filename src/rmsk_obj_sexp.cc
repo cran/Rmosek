@@ -1,14 +1,15 @@
 #define R_NO_REMAP
-#include "rmsk_msg_system.h"
-#include "rmsk_namespace.h"
 #include "rmsk_obj_sexp.h"
+
+#include "rmsk_numeric_casts.h"
 
 #include <Rinternals.h>
 #include <string>
 
-___RMSK_INNER_NS_START___
 
+___RMSK_INNER_NS_START___
 using std::string;
+
 
 // ------------------------------
 // Class SEXP_Handle
@@ -70,7 +71,8 @@ void SEXP_NamedVector::pushback(std::string name, SEXP item) {
 	if (!initialized)
 		throw msk_exception("A SEXP_NamedVector was not initialized in pushback call");
 
-	int pos = size();
+	// SET_VECTOR_ELT and SETLENGTH needs type 'int'
+	R_len_t pos = numeric_cast<int>(size());
 	if (pos >= maxsize)
 		throw msk_exception("Internal SEXP_NamedVector did not have enough capacity");
 
@@ -101,7 +103,7 @@ void SEXP_NamedVector::set(std::string name, SEXP item, int pos) {
 	if (!initialized)
 		throw msk_exception("A SEXP_NamedVector was not initialized in set call");
 
-	if (!(0 <= pos && pos < size()))
+	if (!(0 <= pos && pos < numeric_cast<int>(size())))
 		throw msk_exception("Internal SEXP_NamedVector failed to place an element");
 
 	SET_VECTOR_ELT(items, pos, item);
@@ -178,7 +180,8 @@ void SEXP_Vector::pushback(SEXP item) {
 	if (static_size)
 		throw msk_exception("A static sized SEXP_Vector recieved a dynamic pushback call");
 
-	int pos = size();
+	// SET_VECTOR_ELT and SETLENGTH needs type 'int'
+	R_len_t pos = numeric_cast<int>(size());
 	if (pos >= maxsize)
 		throw msk_exception("Internal SEXP_Vector did not have enough capacity");
 
@@ -224,7 +227,7 @@ void SEXP_Vector::set(SEXP item, int pos) {
 	if (!initialized)
 		throw msk_exception("A SEXP_Vector was not initialized in set call");
 
-	if (!(0 <= pos && pos < size()))
+	if (!(0 <= pos && pos < numeric_cast<int>(size())))
 		throw msk_exception("Internal SEXP_Vector failed to place an element");
 
 	SET_VECTOR_ELT(items, pos, item);

@@ -3,9 +3,8 @@
 
 #include <stdexcept>
 
-___RMSK_INNER_NS_START___
 
-using std::string;
+___RMSK_INNER_NS_START___
 using std::exception;
 
 
@@ -36,7 +35,7 @@ void Env_handle::init() {
 			errcatch( MSK_makeenv(&env, NULL, NULL, NULL, NULL) );
 
 			try {
-				/* Directs the env log stream to the 'mskprintstr' function. */
+				/* Directs the env log stream to the 'msk_printoutput' function. */
 				errcatch( MSK_linkfunctoenvstream(env, MSK_STREAM_LOG, NULL, msk_printoutput) );
 
 				try {

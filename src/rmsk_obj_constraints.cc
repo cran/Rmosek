@@ -1,10 +1,11 @@
 #define R_NO_REMAP
 #include "rmsk_obj_constraints.h"
-#include "rmsk_sexp_methods.h"
-#include "rmsk_utils.h"
+
+#include "rmsk_utils_sexp.h"
+#include "rmsk_utils_mosek.h"
+
 
 ___RMSK_INNER_NS_START___
-
 using std::string;
 
 
@@ -21,7 +22,7 @@ void conicSOC_type::R_read(SEXP_LIST object) {
 
 	printdebug("Started reading second order cone list from R");
 	conevec.protect(object);
-	numcones = Rf_length(object);
+	numcones = numeric_cast<MSKintt>( Rf_length(object) );
 
 	initialized = true;
 }
@@ -59,7 +60,7 @@ void conicSOC_type::MOSEK_read(Task_handle &task) {
 		errcatch( MSK_getcone(task, idx, &msktype, NULL, &numconemembers, psub) );
 
 		// R indexes count from 1, not from 0 as MOSEK
-		for (int k=0; k<numconemembers; k++) {
+		for (MSKidxt k=0; k<numconemembers; k++) {
 			psub[k]++;
 		}
 
@@ -107,16 +108,17 @@ void conicSOC_type::MOSEK_write(Task_handle &task) {
 		MSKconetypee msktype = (MSKconetypee)atoi(msktypestr);
 
 		// Convert sub type and indexing (Minus one because MOSEK indexes counts from 0, not from 1 as R)
-		int msksub[Rf_length(sub)];
-		for (int i=0; i<Rf_length(sub); i++)
+		MSKintt numconesub = numeric_cast<MSKintt>(Rf_length(sub));
+		MSKidxt msksub[numconesub];
+		for (MSKidxt i=0; i < numconesub; i++)
 			msksub[i] = INTEGER_ELT(sub,i) - 1;
 
 		// Append the cone
 		errcatch( MSK_appendcone(task,
-				msktype,		/* The type of cone */
-				0.0, 			/* For future use only, can be set to 0.0 */
-				Rf_length(sub),	/* Number of variables */
-				msksub) );		/* Variable indexes */
+				msktype,	/* The type of cone */
+				0.0, 		/* For future use only, can be set to 0.0 */
+				numconesub,	/* Number of variables */
+				msksub) );	/* Variable indexes */
 	}
 }
 

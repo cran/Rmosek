@@ -1,7 +1,7 @@
 #ifndef RMSK_OBJ_CONSTRAINTS_H_
 #define RMSK_OBJ_CONSTRAINTS_H_
 
-#include "rmsk_msg_system.h"
+#include "rmsk_msg_base.h"
 #include "rmsk_namespace.h"
 
 #include "rmsk_obj_sexp.h"
@@ -38,7 +38,7 @@ public:
 
 
 	// Data definition (intentionally kept close to R types)
-	int numcones;
+	MSKintt numcones;
 	SEXP_Handle conevec;
 
 	// Simple construction and destruction

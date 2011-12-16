@@ -1,10 +1,8 @@
 #ifndef RMSK_OBJ_MOSEK_H_
 #define RMSK_OBJ_MOSEK_H_
 
-#include "rmsk_msg_system.h"
+#include "rmsk_msg_mosek.h"
 #include "rmsk_namespace.h"
-
-#include <string>
 
 
 ___RMSK_INNER_NS_START___

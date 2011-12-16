@@ -1,22 +1,24 @@
 #define R_NO_REMAP
-#include "rmsk_msg_system.h"
+#include "rmsk_msg_base.h"
 
 #include <R_ext/Print.h>
 #include <math.h>
 #include <vector>
 #include <limits>
 
+
+___RMSK_INNER_NS_START___
 using std::vector;
 using std::string;
 using std::numeric_limits;
 
 
-___RMSK_INNER_NS_START___
-
+// Global initialization
 double mosek_interface_verbose  = NAN;				// Declare messages as pending
 int    mosek_interface_warnings = 0;				// Start warning count from zero
 bool   mosek_interface_signal_caught = false;		// Indicate whether the CTRL+C interrupt has been registered
 bool   mosek_interface_termination_success = true;	// Indicate whether the interfaced terminated properly
+
 
 // ------------------------------
 // PRINTING SYSTEM
@@ -59,48 +61,20 @@ void printdebugdata(string str) {
 }
 
 void printpendingmsg() {
-	if (mosek_pendingmsg_str.size() != mosek_pendingmsg_type.size())
+	if (mosek_pendingmsg_str.size() != mosek_pendingmsg_type.size()) {
+		delete_all_pendingmsg();
 		throw msk_exception("Error in handling of pending messages");
+	}
 
 	for (vector<string>::size_type i=0; i<mosek_pendingmsg_str.size(); i++) {
 		printoutput(mosek_pendingmsg_str[i], mosek_pendingmsg_type[i]);
 	}
+	delete_all_pendingmsg();
+}
 
+void delete_all_pendingmsg() {
 	mosek_pendingmsg_str.clear();
 	mosek_pendingmsg_type.clear();
-}
-
-
-// ------------------------------
-// RESPONSE AND EXCEPTION SYSTEM
-// ------------------------------
-string msk_responsecode2text(MSKrescodee r) {
-	char symname[MSK_MAX_STR_LEN];
-	char desc[MSK_MAX_STR_LEN];
-
-	if (MSK_getcodedesc(r, symname, desc) == MSK_RES_OK) {
-		return string(symname) + ": " + string(desc) + "";
-	} else {
-		return "The response code could not be identified";
-	}
-}
-
-msk_response::msk_response(MSKrescodee r) {
-	code = (double)r;
-	msg = msk_responsecode2text(r);
-}
-
-// This function translates MOSEK response codes into msk_exceptions.
-void errcatch(MSKrescodee r, string str) {
-	if (r != MSK_RES_OK) {
-		if (!str.empty())
-			printerror(str);
-
-		throw msk_exception(r);
-	}
-}
-void errcatch(MSKrescodee r) {
-	errcatch(r, "");
 }
 
 
@@ -113,7 +87,7 @@ void strtoupper(string &str) {
 	string::iterator end = str.end();
 
 	while (i != end) {
-	    *i = toupper((int)*i);
+	    *i = toupper(static_cast<int>(*i));
 	    ++i;
 	}
 }
@@ -128,7 +102,7 @@ int scalar2int(double scalar) {
 	if (isinf(scalar))
 		return numeric_limits<int>::max();
 
-	int retval = (int)scalar;
+	int retval = static_cast<int>(scalar);
 	double err = scalar - retval;
 
 	if (err <= -1e-6 || 1e-6 <= err)

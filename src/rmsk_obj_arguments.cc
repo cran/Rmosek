@@ -1,12 +1,14 @@
 #define R_NO_REMAP
 #include "rmsk_obj_arguments.h"
+
+#include "rmsk_utils_sexp.h"
+#include "rmsk_utils_mosek.h"
 #include "rmsk_obj_mosek.h"
 
-#include "rmsk_sexp_methods.h"
-#include "rmsk_utils.h"
+#include "rmsk_numeric_casts.h"
+
 
 ___RMSK_INNER_NS_START___
-
 using std::string;
 using std::auto_ptr;
 using std::exception;
@@ -91,7 +93,7 @@ void problem_type::R_read(SEXP_LIST object) {
 
 	// Constraint Matrix
 	list_seek_SparseMatrix(A, arglist, R_ARGS.A);
-	numnz = A->nnz();
+	numnz  = A->nnz();
 	numcon = A->nrow();
 	numvar = A->ncol();
 
@@ -118,7 +120,7 @@ void problem_type::R_read(SEXP_LIST object) {
 	// Integers variables and initial solutions
 	list_seek_Numeric(intsub, arglist, R_ARGS.intsub, true);
 	list_seek_NamedVector(initsol, arglist, R_ARGS.sol, true);
-	numintvar = Rf_length(intsub);
+	numintvar = numeric_cast<MSKintt>(Rf_length(intsub));
 
 	// Parameters
 	list_seek_NamedVector(iparam, arglist, R_ARGS.iparam, true);
@@ -145,7 +147,7 @@ void problem_type::R_write(SEXP_NamedVector &prob_val) {
 
 	printdebug("Started writing R problem output");
 
-	prob_val.initVEC( problem_type::R_ARGS.arglist.size() );
+	prob_val.initVEC( numeric_cast<R_len_t>( problem_type::R_ARGS.arglist.size() ) );
 
 	// Objective sense
 	prob_val.pushback("sense", get_objective(sense));
@@ -289,9 +291,9 @@ void problem_type::MOSEK_read(Task_handle &task) {
 
 		MSKlidxt *pintsub = INTEGER(intsub);
 
-		int idx = 0;
+		MSKidxt idx = 0;
 		MSKvariabletypee type;
-		for (int i=0; i<numvar; i++) {
+		for (MSKidxt i=0; i<numvar; i++) {
 			errcatch( MSK_getvartype(task,i,&type) );
 
 			// R indexes count from 1, not from 0 as MOSEK

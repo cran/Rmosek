@@ -16,7 +16,7 @@
  * "fallbacks.cc".
  */
 
-#include "rmsk_msg_system.h"
+#include "rmsk_msg_base.h"
 #include "local_stubs.h"
 
 namespace MSK4 {

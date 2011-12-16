@@ -41,7 +41,7 @@ opts				\tab LIST		\tab (OPTIONAL) 	\cr
 }}
 }
 \details{
-The optimization problem should be specified in a named list of definitions. The number of variables in the problem is determined from the number of columns in the constraint matrix \code{A}.
+The optimization problem should be described in a named list of definitions. The number of variables in the problem is determined from the number of columns in the constraint matrix \code{A}.
 
 Like a Linear Program it has a linear objective with one coefficient in \code{c} for each variable, some optional constant \code{c0}, and the improving direction \code{sense}. The constraints can either be linear, specified as rows in \code{A} with lower bounds \code{blc} and upper bounds \code{buc} (you can use \code{Inf} if needed), or conic as specified in the list \code{cones} (add constraints copyx=x if some variable x appears in multiple cones). Each variable is bounded by \code{blx} and \code{bux} and will be integer if it appears in the \code{intsub} list.
 
@@ -100,11 +100,11 @@ r				\tab LIST		\tab 			\cr
 ......$snx 			\tab NUMERIC VECTOR	\tab (NOT IN $int/$bas) \cr
 }}
 
-The result is a named list containing the response of the MOSEK Optimization Library. Note that the result can be NULL if interfacing errors are encountered.
+The result is a named list containing the response of the MOSEK Optimization Library. A response code of zero is the signal of success.
 
 Depending on the specified solver, one or more solutions mays be returned. The interior-point solution \code{itr}, the basic (corner point) solution \code{bas}, and the integer solution \code{int}.
 
-The problem status \code{prosta} in all solutions shows the feasibility of your problem definition. All solutions are described by a solution status \code{solsta} (e.g. optimal) along with the variable and constraint activities. All activities will further have a bound key that specify their value in relation to the declared bounds.
+The problem status \code{prosta} in all solutions shows the feasibility of your problem description. All solutions are described by a solution status \code{solsta} (e.g. optimal) along with the variable and constraint activities. All activities will further have a bound key that specify their value in relation to the declared bounds.
 
 Dual variables are returned for all defined bounds wherever possible. Integer solutions \code{int} does not have any dual variables as such definitions would not make sense. Basic (corner point) solutions \code{bas} would never be returned if the problem had conic constraints, and does not define \code{snx}.
 \tabular{lll}{

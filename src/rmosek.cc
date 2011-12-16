@@ -4,7 +4,7 @@
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation; either version 3 of the License, or
+// the Free Software Foundation; either version 2.1 of the License, or
 // any later version.
 //
 // This program is distributed in the hope that it will be useful,
@@ -15,17 +15,38 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program; if not, see <http://www.gnu.org/licenses/>.
 //
+// Linking this program statically or dynamically with other modules is making
+// a combined work based on this program. Thus, the terms and conditions of
+// the GNU Lesser General Public License cover the whole combination.
+//
+// In addition, as a special exception, the copyright holders of this program
+// give you permission to combine this program with the MOSEK C/C++ API
+// (or modified versions of such code). You may copy and distribute such a system
+// following the terms of the GNU LGPL for this program and the licenses
+// of the other code concerned.
+//
+// Note that people who make modified versions of this program are not obligated
+// to grant this special exception for their modified versions; it is their choice
+// whether to do so. The GNU Lesser General Public License gives permission
+// to release a modified version without this exception; this exception also makes
+// it possible to release a modified version which carries forward this exception.
+//
 
 #define R_NO_REMAP
-#include "rmsk_msg_system.h"
 #include "rmsk_namespace.h"
+#include "rmsk_msg_mosek.h"
+#include "rmsk_utils_interface.h"
+#include "rmsk_utils_sexp.h"
 
-#include "rmsk_sexp_methods.h"
-#include "rmsk_utils.h"
+#include "rmsk_obj_arguments.h"
+#include "rmsk_obj_mosek.h"
 
+#include <string>
+#include <exception>
+
+using namespace RMSK_INNER_NS;
 using std::string;
 using std::exception;
-using namespace RMSK_INNER_NS;
 
 
 extern "C"
@@ -47,7 +68,7 @@ SEXP mosek(SEXP arg0, SEXP arg1)
 
 	// Clean in case of Rf_error in previous run
 	if (!mosek_interface_termination_success) {
-		terminate_successfully();
+		reset_global_ressources();
 	}
 
 	// Create handled for returned data
@@ -56,6 +77,7 @@ SEXP mosek(SEXP arg0, SEXP arg1)
 	try {
 		// Start the program
 		reset_global_variables();
+		printdebug("Function 'mosek' was called");
 		ret_val.initVEC(2);
 
 		// Validate input arguments
@@ -88,25 +110,42 @@ SEXP mosek(SEXP arg0, SEXP arg1)
 		return ret_val;
 
 	} catch (exception const& e) {
-		terminate_unsuccessfully(e.what());
+		terminate_unsuccessfully(ret_val, e.what());
 		return ret_val;
 	}
 
 	// Clean allocations and exit (msk_solve adds response)
-	terminate_successfully();
+	terminate_successfully(ret_val);
 	return ret_val;
 }
 
 
 SEXP mosek_clean()
 {
-	// Print in case of Rf_error in previous run
 	if (!mosek_interface_termination_success) {
-		printoutput("----- MOSEK_CLEAN -----\n", typeERROR);
-	}
-	mosek_interface_verbose = typeALL;
 
-	// Clean resources such as tasks before the environment!
+		// If an Rf_error happens before vebosity is set, output everything!
+		if isnan(mosek_interface_verbose) {
+			mosek_interface_verbose = typeALL;
+			printoutput("----- PENDING MESSAGES -----\n", typeERROR);
+
+			try {
+				printpendingmsg();
+			} catch (exception const& e) { /* Just continue.. */ }
+		}
+
+		// Print exclamation in case of an Rf_error in previous run
+		printoutput("----- ERROR CAUGHT! CALLING MOSEK_CLEAN -----\n", typeERROR);
+
+	} else {
+
+		// The mosek_clean function use verbose=typeINFO by default (should we read options?)
+		reset_global_variables();
+		mosek_interface_verbose = typeINFO;
+
+	}
+
+	// Clean global resources and release the MOSEK environment
 	reset_global_ressources();
 	global_env.~Env_handle();
 	mosek_interface_termination_success = true;
@@ -136,7 +175,7 @@ SEXP mosek_read(SEXP arg0, SEXP arg1)
 
 	// Clean in case of Rf_error in previous run
 	if (!mosek_interface_termination_success) {
-		terminate_successfully();
+		reset_global_ressources();
 	}
 
 	// Create handled for returned data
@@ -145,10 +184,10 @@ SEXP mosek_read(SEXP arg0, SEXP arg1)
 	try {
 		// Start the program
 		reset_global_variables();
+		printdebug("Function 'mosek_read' was called");
 		ret_val.initVEC(2);
 
 		// Validate input arguments
-		printdebug("Validate input arguments");
 		string filepath = CHARACTER_ELT(arg0, 0);
 		if (filepath.empty()) {
 			throw msk_exception("Input argument " + ARGNAMES[0] + " should be a " + ARGTYPES[0] + ".");
@@ -164,22 +203,18 @@ SEXP mosek_read(SEXP arg0, SEXP arg1)
 		}
 
 		// Read input arguments: options (with modified defaults)
-		printdebug("Reading input arguments");
 		problem_type probin;
 		probin.options = default_opts;
 		probin.options.R_read(arg1);
 
 		// Create task and load filepath-model into MOSEK
-		printdebug("Loading filepath-model into MOSEK");
 		Task_handle &task = global_task;
-		msk_loadproblemfile(task, filepath, probin.options.useparam);
+		msk_loadproblemfile(task, filepath, probin.options);
 
 		// Read the problem from MOSEK
-		printdebug("Reading the problem from MOSEK");
 		probin.MOSEK_read(task);
 
 		// Write the problem to R
-		printdebug("Writing the problem to R");
 		SEXP_NamedVector prob_val;
 		probin.R_write(prob_val);
 		ret_val.pushback("prob", prob_val);
@@ -194,7 +229,7 @@ SEXP mosek_read(SEXP arg0, SEXP arg1)
 		return ret_val;
 
 	} catch (exception const& e) {
-		terminate_unsuccessfully(e.what());
+		terminate_unsuccessfully(ret_val, e.what());
 		return ret_val;
 	}
 
@@ -211,7 +246,7 @@ SEXP mosek_write(SEXP arg0, SEXP arg1, SEXP arg2)
 
 	// Clean in case of Rf_error in previous run
 	if (!mosek_interface_termination_success) {
-		terminate_successfully();
+		reset_global_ressources();
 	}
 
 	// Create handled for returned data
@@ -220,6 +255,7 @@ SEXP mosek_write(SEXP arg0, SEXP arg1, SEXP arg2)
 	try {
 		// Start the program
 		reset_global_variables();
+		printdebug("Function 'mosek_write' was called");
 		ret_val.initVEC(1);
 
 		// Validate input arguments
@@ -250,24 +286,8 @@ SEXP mosek_write(SEXP arg0, SEXP arg1, SEXP arg2)
 		Task_handle &task = global_task;
 		probin.MOSEK_write(task);
 
-		// Set export-parameters for whether to write any solution loaded into MOSEK
-		if (probin.options.usesol) {
-			errcatch( MSK_putintparam(task, MSK_IPAR_OPF_WRITE_SOLUTIONS, MSK_ON) );
-		} else {
-			errcatch( MSK_putintparam(task, MSK_IPAR_OPF_WRITE_SOLUTIONS, MSK_OFF) );
-		}
-
-		// Set export-parameters for whether to write all parameters
-		if (probin.options.useparam) {
-			errcatch( MSK_putintparam(task, MSK_IPAR_WRITE_DATA_PARAM,MSK_ON) );
-			errcatch( MSK_putintparam(task, MSK_IPAR_OPF_WRITE_PARAMETERS,MSK_ON) );
-		} else {
-			errcatch( MSK_putintparam(task, MSK_IPAR_WRITE_DATA_PARAM,MSK_OFF) );
-			errcatch( MSK_putintparam(task, MSK_IPAR_OPF_WRITE_PARAMETERS,MSK_OFF) );
-		}
-
-		// Write to filepath model (filetypes: .lp, .mps, .opf, .mbt)
-		errcatch( MSK_writedata(task, const_cast<MSKCONST char*>(filepath.c_str())) );
+		// Write the loaded problem to a file
+		msk_saveproblemfile(task, filepath, probin.options);
 
 		// Print warning summary
 		if (mosek_interface_warnings > 0) {
@@ -279,7 +299,7 @@ SEXP mosek_write(SEXP arg0, SEXP arg1, SEXP arg2)
 		return ret_val;
 
 	} catch (exception const& e) {
-		terminate_unsuccessfully(e.what());
+		terminate_unsuccessfully(ret_val, e.what());
 		return ret_val;
 	}
 

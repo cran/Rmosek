@@ -1,7 +1,7 @@
 #ifndef RMSK_OBJ_SEXP_H_
 #define RMSK_OBJ_SEXP_H_
 
-#include "rmsk_msg_system.h"
+#include "rmsk_msg_base.h"
 #include "rmsk_namespace.h"
 
 #include <Rinternals.h>

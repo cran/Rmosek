@@ -1,9 +1,11 @@
 #define R_NO_REMAP
 #include "rmsk_obj_matrices.h"
-#include "rmsk_sexp_methods.h"
+
+#include "rmsk_utils_sexp.h"
+#include "rmsk_obj_mosek.h"
+
 
 ___RMSK_INNER_NS_START___
-
 using std::string;
 
 
@@ -73,7 +75,7 @@ void simple_matrixCOO_type::R_write(SEXP_Handle &val) {
 	}
 
 	SEXP_NamedVector mat;
-	mat.initVEC( simple_matrixCOO_type::R_ARGS.arglist.size() );
+	mat.initVEC( numeric_cast<R_len_t>( simple_matrixCOO_type::R_ARGS.arglist.size() ) );
 	val.protect(mat);
 
 	mat.pushback(R_ARGS.nrow, _nrow);
@@ -90,26 +92,27 @@ void simple_matrixCOO_type::MOSEK_read(Task_handle &task) {
 
 	printdebug("Started reading simple coordinate sparse matrix from MOSEK");
 
-	errcatch( MSK_getnumanz(task, &_nnz) );
+	errcatch( MSK_getnumanz(task, &_nnz) );				// FIXME: Use MSK_getnumanz64 instead when R_len_t is 'long'
 	errcatch( MSK_getnumcon(task, &_nrow) );
 	errcatch( MSK_getnumvar(task, &_ncol) );
 
-	SEXP_Vector ivec;	ivec.initINT(_nnz);	subi.protect(ivec);
+	SEXP_Vector ivec;	ivec.initINT(_nnz);		subi.protect(ivec);
 	MSKidxt *pi = INTEGER(ivec);
 
-	SEXP_Vector jvec;	jvec.initINT(_nnz);	subj.protect(jvec);
+	SEXP_Vector jvec;	jvec.initINT(_nnz);		subj.protect(jvec);
 	MSKidxt *pj = INTEGER(jvec);
 
 	SEXP_Vector vvec;	vvec.initREAL(_nnz);	valij.protect(vvec);
 	MSKrealt *pv = REAL(vvec);
 
-	MSKintt surp[1] = {_nnz};
+	MSKintt surp[1] = { numeric_cast<MSKintt>(_nnz) };
 
-	errcatch( MSK_getaslicetrip(task, MSK_ACC_VAR, 0, _ncol, _nnz, surp,
+	// FIXME: 64bit alternative for MSK_getaslicetrip when R_len_t is 'long'??
+	errcatch( MSK_getaslicetrip(task, MSK_ACC_VAR, 0, _ncol, numeric_cast<MSKintt>(_nnz), surp,
 			pi, pj, pv) );
 
 	// Convert sub indexing (Plus one because MOSEK indexes counts from 0, not from 1 as R)
-	for (int k=0; k<_nnz; k++) {
+	for (R_len_t k = 0; k < _nnz; k++) {
 		++pi[k];
 		++pj[k];
 	}
@@ -123,17 +126,18 @@ void simple_matrixCOO_type::MOSEK_write(Task_handle &task) {
 
 	// Convert sub indexing (Minus one because MOSEK indexes counts from 0, not from 1 as R)
 	MSKintt msksubi[_nnz];
-	for (int i=0; i<_nnz; i++)
+	for (R_len_t i = 0; i < _nnz; i++)
 		msksubi[i] = INTEGER_ELT(subi,i) - 1;
 
 	// Convert sub indexing (Minus one because MOSEK indexes counts from 0, not from 1 as R)
 	MSKintt msksubj[_nnz];
-	for (int j=0; j<_nnz; j++)
+	for (R_len_t j = 0; j < _nnz; j++)
 		msksubj[j] = INTEGER_ELT(subj,j) - 1;
 
 	MSKrealt *pvalij = REAL(valij);
 
-	MSK_putaijlist(task, _nnz, msksubi, msksubj, pvalij);
+	// FIXME: 64bit alternative for MSK_putaijlist when R_len_t is 'long'??
+	MSK_putaijlist(task, numeric_cast<MSKintt>(_nnz), msksubi, msksubj, pvalij);
 }
 
 
@@ -204,20 +208,22 @@ void pkgMatrixCOO_type::MOSEK_read(Task_handle &task) {
 
 	printdebug("Started reading coordinate sparse matrix from MOSEK");
 
-	MSKintt nzmax, nrow, ncol;
-	errcatch( MSK_getnumanz(task, &nzmax) );
+	R_len_t nzmax;
+	MSKintt nrow, ncol;
+	errcatch( MSK_getnumanz(task, &nzmax) );		// FIXME: Use MSK_getnumanz64 instead when R_len_t is 'long'
 	errcatch( MSK_getnumcon(task, &nrow) );
 	errcatch( MSK_getnumvar(task, &ncol) );
 
 	matrix = M_cholmod_allocate_triplet(nrow, ncol, nzmax, 0, CHOLMOD_REAL, &chol);
 	cholmod_allocated = true;	initialized = true;
 
-	MSKidxt *pi = (MSKidxt*)matrix->i;
-	MSKidxt *pj = (MSKidxt*)matrix->j;
-	MSKrealt *pv = (MSKrealt*)matrix->x;
-	MSKintt surp[1] = {nzmax};
+	MSKidxt *pi = static_cast<MSKidxt*>(matrix->i);
+	MSKidxt *pj = static_cast<MSKidxt*>(matrix->j);
+	MSKrealt *pv = static_cast<MSKrealt*>(matrix->x);
+	MSKintt surp[1] = { numeric_cast<MSKintt>(nzmax) };
 
-	errcatch( MSK_getaslicetrip(task, MSK_ACC_VAR, 0, ncol, nzmax, surp,
+	// FIXME: 64bit alternative for MSK_getaslicetrip when R_len_t is 'long'??
+	errcatch( MSK_getaslicetrip(task, MSK_ACC_VAR, 0, ncol, numeric_cast<MSKintt>(nzmax), surp,
 			pi, pj, pv) );
 
 	matrix->nnz = nzmax;
@@ -229,11 +235,12 @@ void pkgMatrixCOO_type::MOSEK_write(Task_handle &task) {
 		throw msk_exception("Internal error in pkgMatrixCOO_type::MOSEK_write, a matrix was not loaded");
 	}
 
-	MSKidxt *pi = (MSKidxt*)matrix->i;
-	MSKidxt *pj = (MSKidxt*)matrix->j;
-	MSKrealt *pv = (MSKrealt*)matrix->x;
+	MSKidxt *pi = static_cast<MSKidxt*>(matrix->i);
+	MSKidxt *pj = static_cast<MSKidxt*>(matrix->j);
+	MSKrealt *pv = static_cast<MSKrealt*>(matrix->x);
 
-	MSK_putaijlist(task, nnz(), pi, pj, pv);
+	// FIXME: 64bit alternative for MSK_putaijlist when R_len_t is 'long'??
+	MSK_putaijlist(task, numeric_cast<MSKintt>(nnz()), pi, pj, pv);
 }
 
 
@@ -331,20 +338,22 @@ void pkgMatrixCSC_type::MOSEK_read(Task_handle &task) {
 
 	printdebug("Started reading column compressed sparse matrix from MOSEK");
 
-	MSKintt nzmax, nrow, ncol;
-	errcatch( MSK_getnumanz(task, &nzmax) );
+	R_len_t nzmax;
+	MSKintt nrow, ncol;
+	errcatch( MSK_getnumanz(task, &nzmax) );		// FIXME: Use MSK_getnumanz64 when R_len_t is 'long'??
 	errcatch( MSK_getnumcon(task, &nrow) );
 	errcatch( MSK_getnumvar(task, &ncol) );
 
 	matrix = M_cholmod_allocate_sparse(nrow, ncol, nzmax, true, true, 0, CHOLMOD_REAL, &chol);
 	cholmod_allocated = true;	initialized = true;
 
-	MSKintt *ptrb = (int*)matrix->p;
-	MSKlidxt *sub = (int*)matrix->i;
-	MSKrealt *val = (double*)matrix->x;
-	MSKintt surp[1] = {nzmax};
+	MSKintt *ptrb = static_cast<MSKintt*>(matrix->p);
+	MSKlidxt *sub = static_cast<MSKlidxt*>(matrix->i);
+	MSKrealt *val = static_cast<MSKrealt*>(matrix->x);
+	MSKintt surp[1] = { numeric_cast<MSKintt>(nzmax) };
 
-	errcatch( MSK_getaslice(task, MSK_ACC_VAR, 0, ncol, nzmax, surp,
+	// FIXME: 64bit alternative for MSK_putaijlist when R_len_t is 'long'??
+	errcatch( MSK_getaslice(task, MSK_ACC_VAR, 0, ncol, numeric_cast<MSKintt>(nzmax), surp,
 			ptrb, ptrb+1, sub, val) );
 }
 
@@ -354,11 +363,11 @@ void pkgMatrixCSC_type::MOSEK_write(Task_handle &task) {
 		throw msk_exception("Internal error in pkgMatrixCSC_type::MOSEK_write, a matrix was not loaded");
 	}
 
-	MSKlidxt *aptr = (MSKlidxt*)matrix->p;
-	MSKlidxt *asub = (MSKlidxt*)matrix->i;
-	double *aval = (double*)matrix->x;
+	MSKlidxt *aptr = static_cast<MSKlidxt*>(matrix->p);
+	MSKlidxt *asub = static_cast<MSKlidxt*>(matrix->i);
+	MSKrealt *aval = static_cast<MSKrealt*>(matrix->x);
 
-	for (MSKidxt j=0; j < (MSKidxt)matrix->ncol; ++j)
+	for (MSKidxt j=0; j < numeric_cast<MSKidxt>(matrix->ncol); ++j)
 	{
 		/* Input column j of A */
 		errcatch( MSK_putavec(task,

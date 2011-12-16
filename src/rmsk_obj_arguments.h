@@ -1,7 +1,7 @@
 #ifndef RMSK_OBJ_ARGUMENTS_H_
 #define RMSK_OBJ_ARGUMENTS_H_
 
-#include "rmsk_msg_system.h"
+#include "rmsk_msg_base.h"
 #include "rmsk_namespace.h"
 
 #include "rmsk_obj_sexp.h"
@@ -117,9 +117,8 @@ public:
 
 	//
 	// Data definition (intentionally kept close to R types)
-	// FIXME: 'size_t' can hold 'MSKintt' assuming non-negativity, but 'size_t' is incomparable to 'MSKint64t'
 	//
-	MSKintt	numnz;
+	R_len_t	numnz;
 	MSKintt	numcon;
 	MSKintt	numvar;
 	MSKintt	numintvar;
@@ -145,11 +144,11 @@ public:
 	// Set default values
 	problem_type();
 
-	// Read and write matrix from and to R
+	// Read and write problem description from and to R
 	void R_read(SEXP_LIST object);
 	void R_write(SEXP_NamedVector &prob_val);
 
-	// Read and write matrix from and to MOSEK
+	// Read and write problem description from and to MOSEK
 	void MOSEK_read(Task_handle &task);
 	void MOSEK_write(Task_handle &task);
 };

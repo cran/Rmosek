@@ -1,7 +1,7 @@
-#ifndef RMSK_SEXP_METHODS_H_
-#define RMSK_SEXP_METHODS_H_
+#ifndef RMSK_UTILS_SEXP_H_
+#define RMSK_UTILS_SEXP_H_
 
-#include "rmsk_msg_system.h"
+#include "rmsk_msg_base.h"
 #include "rmsk_namespace.h"
 
 #include "rmsk_obj_sexp.h"
@@ -47,5 +47,5 @@ void validate_Character(SEXP_Handle &object, std::string name, R_len_t nrows, bo
 
 ___RMSK_INNER_NS_END___
 
-#endif /* RMSK_SEXP_METHODS_H_ */
+#endif /* RMSK_UTILS_SEXP_H_ */
 

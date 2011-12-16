@@ -1,19 +1,24 @@
 #ifndef RMSK_OBJ_MATRICES_H_
 #define RMSK_OBJ_MATRICES_H_
 
-#include "rmsk_msg_system.h"
+#include "rmsk_msg_base.h"
 #include "rmsk_namespace.h"
 
 #include "rmsk_obj_sexp.h"
-#include "rmsk_obj_mosek.h"
 
 #include "local_stubs.h"
+#include "rmsk_numeric_casts.h"
 
 #include <string>
 #include <vector>
 
 
 ___RMSK_INNER_NS_START___
+
+// Forward declarations
+#ifndef RMSK_OBJ_MOSEK_H_
+	class Task_handle;
+#endif
 
 // ------------------------------
 // MATRIX TYPES
@@ -35,9 +40,9 @@ matrixformat_enum get_matrixformat(std::string name);
 class matrix_type {
 public:
 	// Common data definition
-	virtual size_t nrow() = 0;
-	virtual size_t ncol() = 0;
-	virtual size_t nnz() = 0;
+	virtual int nrow() = 0;
+	virtual int ncol() = 0;
+	virtual R_len_t nnz()  = 0;
 	virtual bool isempty() = 0;
 
 	// Common interface functions
@@ -56,9 +61,9 @@ private:
 	bool initialized;
 
 	// Data definition (intentionally kept close to R types)
-	MSKintt _nrow;
-	MSKintt _ncol;
-	MSKintt	_nnz;
+	int _nrow;
+	int _ncol;
+	R_len_t _nnz;
 	SEXP_Handle subi;
 	SEXP_Handle subj;
 	SEXP_Handle valij;
@@ -93,9 +98,9 @@ public:
 	~simple_matrixCOO_type() {}
 
 	// Matrix properties
-	size_t nrow() {	return _nrow; }
-	size_t ncol() {	return _ncol; }
-	size_t nnz()  {	return _nnz;  }
+	int nrow() { return _nrow; }
+	int ncol() { return _ncol; }
+	R_len_t  nnz() { return _nnz;  }
 	bool isempty() {
 		return (!initialized || nnz() == 0 || nrow() == 0 || ncol() == 0);
 	}
@@ -122,9 +127,9 @@ public:
 	~pkgMatrixCOO_type();
 
 	// Matrix properties
-	size_t nrow() {	return matrix->nrow; }
-	size_t ncol() {	return matrix->ncol; }
-	size_t nnz()  {	return matrix->nnz;  }
+	int nrow() { return numeric_cast<int>(matrix->nrow); }
+	int ncol() { return numeric_cast<int>(matrix->ncol); }
+	R_len_t   nnz() { return numeric_cast<R_len_t>(matrix->nnz);  }
 	bool isempty() {
 		return (!initialized || nnz() == 0 || nrow() == 0 || ncol() == 0);
 	}
@@ -151,9 +156,9 @@ public:
 	~pkgMatrixCSC_type();
 
 	// Matrix properties
-	size_t nrow() {	return matrix->nrow;  }
-	size_t ncol() {	return matrix->ncol;  }
-	size_t nnz()  {	return matrix->nzmax; }
+	int nrow() { return numeric_cast<int>(matrix->nrow);  }
+	int ncol() { return numeric_cast<int>(matrix->ncol);  }
+	R_len_t   nnz() { return numeric_cast<R_len_t>(matrix->nzmax); }
 	bool isempty() {
 		return (!initialized || nnz() == 0 || nrow() == 0 || ncol() == 0);
 	}
