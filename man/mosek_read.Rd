@@ -5,7 +5,7 @@
 mosek_read(modelfile, opts = list())
 }
 \description{
-  Interprets a model from any standard modelling fileformat (e.g. lp, opf, mps, mbt, etc.), controlled by a set of options. The result contains an optimization problem which is compliant with the input specifications of function \code{mosek}.
+  Interprets a model from any standard modeling fileformat (e.g. lp, opf, mps, mbt, etc.), controlled by a set of options. The result contains an optimization problem which is compliant with the input specifications of function \code{mosek}.
 }
 \arguments{
 \item{modelfile}{The file containing an optimization model.
@@ -18,6 +18,7 @@ opts 				\tab LIST		\tab (OPTIONAL)		\cr
 ..$verbose 			\tab NUMERIC 		\tab (OPTIONAL)		\cr
 ..$usesol			\tab BOOLEAN		\tab (OPTIONAL)		\cr
 ..$useparam 			\tab BOOLEAN		\tab (OPTIONAL)		\cr
+..$scofile			\tab STRING (filepath)	\tab (OPTIONAL)		\cr
 ..$matrixformat 		\tab STRING		\tab (OPTIONAL)		\cr
 }}
 }
@@ -25,6 +26,8 @@ opts 				\tab LIST		\tab (OPTIONAL)		\cr
 The \code{modelfile} should be an absolute or relative path to a model file. 
 
 The amount of information printed by the interface can be limited by \code{verbose} (default=10). Whether to read the initial solution, if one such exists in the model file, is indicated by \code{usesol} which by default is FALSE. Whether to read the full list of parameter settings, some of which may have been defined by the model file, is indicated by \code{useparam} which by default is FALSE. 
+
+The option \code{scofile} is used in separable convex optimization to specify the absolute or relative path to the operator file.
 
 The format of the imported constraint matrix is controlled by \code{matrixformat} and can be either sparse coordinate \code{COO}, compressed sparse column \code{CSC}, or a list-based alternative \code{simple:COO}. The first two formats are based on package 'Matrix'.
 
@@ -34,6 +37,7 @@ The format of the imported constraint matrix is controlled by \code{matrixformat
   .$verbose 		\tab Output logging verbosity \cr
   .$usesol		\tab Whether to read an initial solution \cr
   .$useparam		\tab Whether to read all parameter settings \cr
+  .$scofile		\tab Source of operators read to scopt \cr
   .$matrixformat	\tab The sparse format of the constraint matrix \cr
 }
 }
@@ -56,7 +60,7 @@ On success, the result contains the problem specification with all problem data.
   .$response		\tab Response from the MOSEK Optimization Library \cr
   ..$code		\tab ID-code of response \cr
   ..$msg		\tab Human-readable message \cr
-  .$prob		\tab Problem desciption \cr
+  .$prob		\tab Problem description \cr
 }
 }
 \examples{
@@ -77,6 +81,13 @@ On success, the result contains the problem specification with all problem data.
  if (!identical(rr$response$code, 0))
    stop("Failed to read model file")
  rcqo1 <- mosek(rr$prob)
+
+ modelfile <- system.file(package="Rmosek", "extdata", "sco1.opf")
+ modelscofile <- system.file(package="Rmosek", "extdata", "sco1.sco")
+ rr <- mosek_read(modelfile, list(scofile=modelscofile))
+ if (!identical(rr$response$code, 0))
+   stop("Failed to read model file")
+ rsco1 <- mosek(rr$prob)
 }
 \seealso{
   \code{\link{mosek}}

@@ -5,7 +5,7 @@
 mosek_write(problem, modelfile, opts = list())
 }
 \description{
-  Outputs a model of an optimization problem in any standard modelling fileformat (e.g. lp, opf, mps, mbt, etc.), controlled by a set of options. The modelling fileformat is selected based on the extension of the modelfile.
+  Outputs a model of an optimization problem in any standard modeling fileformat (e.g. lp, opf, mps, mbt, etc.), controlled by a set of options. The modeling fileformat is selected based on the extension of the modelfile.
 }
 \arguments{
 \item{problem}{The optimization problem.
@@ -22,6 +22,7 @@ opts 				\tab LIST		\tab (OPTIONAL)		\cr
 ..$verbose 			\tab NUMERIC 		\tab (OPTIONAL)		\cr
 ..$usesol			\tab BOOLEAN		\tab (OPTIONAL)		\cr
 ..$useparam 			\tab BOOLEAN		\tab (OPTIONAL)		\cr
+..$scofile 			\tab STRING (filepath)	\tab (MANDATORY IN SCOPT)		\cr
 }}
 }
 \details{
@@ -31,13 +32,16 @@ The \code{modelfile} should be an absolute or relative path to the model file. I
 
 The amount of information printed by the interface can be limited by \code{verbose} (default=10). Whether to write the initial solution, if one such exists in the problem description, is indicated by \code{usesol} which by default is FALSE. Whether to write the full list of parameter settings, some of which may have been specified by the problem description, is indicated by \code{useparam} which by default is FALSE.
 
+The option \code{scofile} is used in separable convex optimization to specify the absolute or relative path to the operator file.
+
 \tabular{ll}{
-  problem 		\tab Problem desciption \cr
+  problem 		\tab Problem description \cr
   modelfile		\tab Filepath to the model \cr
   opts 			\tab Options \cr
   .$verbose 		\tab Output logging verbosity \cr
   .$usesol		\tab Whether to write an initial solution \cr
   .$useparam		\tab Whether to write all parameter settings \cr
+  .$scofile		\tab Destination of operators from scopt \cr
 }
 }
 \value{
@@ -65,10 +69,10 @@ The result is a named list containing the response of the MOSEK Optimization Lib
  lo1$A <- Matrix(c(3,1,2,0,
                    2,1,3,1,
                    0,2,0,3), nrow=3, byrow=TRUE, sparse=TRUE)
- lo1$blc <- c(30,15,-Inf)
- lo1$buc <- c(30,Inf,25)
- lo1$blx <- c(0,0,0,0)
- lo1$bux <- c(Inf,10,Inf,Inf)
+ lo1$bc <- rbind(blc = c(30,15,-Inf),
+                 buc = c(30,Inf,25));
+ lo1$bx <- rbind(blx = c(0,0,0,0),
+                 bux = c(Inf,10,Inf,Inf));
  rr <- mosek_write(lo1, "lo1.opf")
  if (!identical(rr$response$code, 0))
    stop("Failed to write model file to current working directory")

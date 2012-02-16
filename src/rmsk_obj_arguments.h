@@ -32,6 +32,7 @@ public:
 		const std::string writebefore;
 		const std::string writeafter;
 		const std::string matrixformat;
+		const std::string scofile;
 
 		R_ARGS_type() :
 			useparam("useparam"),
@@ -39,9 +40,10 @@ public:
 			verbose("verbose"),
 			writebefore("writebefore"),
 			writeafter("writeafter"),
-			matrixformat("matrixformat")
+			matrixformat("matrixformat"),
+			scofile("scofile")
 		{
-			std::string temp[] = {useparam, usesol, verbose, writebefore, writeafter, matrixformat};
+			std::string temp[] = {useparam, usesol, verbose, writebefore, writeafter, matrixformat, scofile};
 			arglist = std::vector<std::string>(temp, temp + sizeof(temp)/sizeof(std::string));
 		}
 	} R_ARGS;
@@ -54,6 +56,7 @@ public:
 	std::string	writebefore;
 	std::string	writeafter;
 	matrixformat_enum matrixformat;
+	std::string scofile;
 
 	// Set default values
 	options_type();
@@ -80,11 +83,14 @@ public:
 		const std::string c;
 		const std::string c0;
 		const std::string A;
+		const std::string bc;
+		const std::string bx;
 		const std::string blc;
 		const std::string buc;
 		const std::string blx;
 		const std::string bux;
 		const std::string cones;
+		const std::string scopt;
 		const std::string intsub;
 		const std::string sol;
 		const std::string iparam;
@@ -97,11 +103,10 @@ public:
 			c("c"),
 			c0("c0"),
 			A("A"),
-			blc("blc"),
-			buc("buc"),
-			blx("blx"),
-			bux("bux"),
+			bc("bc"),
+			bx("bx"),
 			cones("cones"),
+			scopt("scopt"),
 			intsub("intsub"),
 			sol("sol"),
 			iparam("iparam"),
@@ -109,7 +114,7 @@ public:
 			sparam("sparam")
 //			options("options")
 		{
-			std::string temp[] = {sense, c, c0, A, blc, buc, blx, bux, cones, intsub, sol, iparam, dparam, sparam}; //options
+			std::string temp[] = {sense, c, c0, A, bc, bx, cones, scopt, intsub, sol, iparam, dparam, sparam}; //options
 			arglist = std::vector<std::string>(temp, temp + sizeof(temp)/sizeof(std::string));
 		}
 
@@ -123,17 +128,17 @@ public:
 	MSKintt	numvar;
 	MSKintt	numintvar;
 	MSKintt	numcones;
+	MSKintt	numscoprs;
 
 	MSKobjsensee	sense;
 	SEXP_Handle 	c;
 	double 			c0;
-
 	std::auto_ptr<matrix_type> A;
-	SEXP_Handle 	blc;
-	SEXP_Handle 	buc;
-	SEXP_Handle 	blx;
-	SEXP_Handle 	bux;
+	SEXP_Handle 	bc;
+	SEXP_Handle 	bx;
 	conicSOC_type 	cones;
+	scoptOPR_type   scopt;		// MOSEK_read does not affect this variable (use msk_loadproblemscofile when reading files).
+								// MOSEK_write only registers a callback function in MOSEK (use msk_saveproblemscofile when writing files).
 	SEXP_Handle 	intsub;
 	SEXP_Handle 	initsol;
 	SEXP_Handle 	iparam;

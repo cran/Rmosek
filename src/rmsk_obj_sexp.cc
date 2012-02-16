@@ -166,6 +166,23 @@ void SEXP_Vector::initINT(R_len_t maxsize, bool static_size) {
 	initialized = true;
 }
 
+void SEXP_Vector::initVEC(R_len_t maxsize, bool static_size) {
+	if (initialized)
+		throw msk_exception("An internal SEXP_Vector was attempted initialized twice!");
+
+	this->static_size = static_size;
+	this->maxsize = maxsize;
+	itemstype = VECSXP;
+
+	items.protect( Rf_allocVector(itemstype, maxsize) );
+
+	if (!static_size) {
+		SETLENGTH(items, 0);
+	}
+
+	initialized = true;
+}
+
 R_len_t SEXP_Vector::size() {
 	if (static_size)
 		return maxsize;
@@ -196,28 +213,37 @@ void SEXP_Vector::pushback(SEXP item) {
 }
 
 void SEXP_Vector::pushback(char* item) {
-	if (itemstype != STRSXP)
+	if (itemstype != STRSXP && itemstype != VECSXP)
 		throw msk_exception("An internal SEXP_Vector experienced a pushback of the wrong type STRSXP!");
 
 	pushback(Rf_mkChar(item));
 }
 
 void SEXP_Vector::pushback(std::string item) {
-	if (itemstype != STRSXP)
+	if (itemstype != STRSXP && itemstype != VECSXP)
 		throw msk_exception("An internal SEXP_Vector experienced a pushback of the wrong type STRSXP!");
 
-	pushback(Rf_mkChar(item.c_str()));
+	if (itemstype == STRSXP)
+		pushback(Rf_mkChar(item.c_str()));
+
+	if (itemstype == VECSXP) {
+		// Item have to be nested in STRSXP
+		SEXP_Vector temp;		SEXP_Handle temph;
+		temp.initSTR(1, true);	temph.protect(temp);
+		temp.set(Rf_mkChar(item.c_str()), 0);
+		pushback(temph);
+	}
 }
 
 void SEXP_Vector::pushback(double item) {
-	if (itemstype != REALSXP)
+	if (itemstype != REALSXP && itemstype != VECSXP)
 		throw msk_exception("An internal SEXP_Vector experienced a pushback of the wrong type REALSXP!");
 
 	pushback(Rf_ScalarReal(item));
 }
 
 void SEXP_Vector::pushback(int item) {
-	if (itemstype != INTSXP)
+	if (itemstype != INTSXP && itemstype != VECSXP)
 		throw msk_exception("An internal SEXP_Vector experienced a pushback of the wrong type INTSXP!");
 
 	pushback(Rf_ScalarInteger(item));
@@ -230,7 +256,10 @@ void SEXP_Vector::set(SEXP item, int pos) {
 	if (!(0 <= pos && pos < numeric_cast<int>(size())))
 		throw msk_exception("Internal SEXP_Vector failed to place an element");
 
-	SET_VECTOR_ELT(items, pos, item);
+	if (itemstype == STRSXP)
+		SET_STRING_ELT(items, pos, item);
+	else
+		SET_VECTOR_ELT(items, pos, item);
 }
 
 

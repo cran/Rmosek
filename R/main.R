@@ -1,14 +1,19 @@
-.onLoad =
-function(libname, pkgname)
-{
-  dll <- library.dynam("Rmosek", pkgname) 
- 
-  syms = getNativeSymbolInfo(c("mosek", "mosek_clean", "mosek_version", "mosek_read", "mosek_write"), dll)
-
-  # Create symbols in this package
-  env = environment(.onLoad)
-  sapply(names(syms), function(id) assign( paste(id,"_sym",sep="") , syms[[id]], env))
-}
+#
+# This .onLoad hook have been replaced by the '.registration' argument in
+# useDynLib("Rmosek", .registration = TRUE)   // File: NAMESPACE
+#
+#.onLoad =
+#function(libname, pkgname)
+#{
+#  dll <- library.dynam("Rmosek", package=pkgname, lib.loc=NULL) 
+# 
+#  syms = getNativeSymbolInfo(c("mosek", "mosek_clean", "mosek_version", "mosek_read", "mosek_write"), dll)
+#
+#  # Create symbols in this package
+#  env = environment(.onLoad)
+#  sapply(names(syms), function(id) assign( paste(id,"_sym",sep="") , syms[[id]], env))
+#}
+#
 
 mosek = 
 function(problem, opts=list())
@@ -44,7 +49,6 @@ function()
   r <- .Call(mosek_version_sym)
   return(r)
 }
-
 
 mosek_read = 
 function(modelfile, opts=list())
@@ -87,3 +91,4 @@ function(problem, modelfile, opts=list())
 
   return(r)
 }
+

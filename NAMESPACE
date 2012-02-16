@@ -1,4 +1,4 @@
-useDynLib("Rmosek")
+useDynLib("Rmosek", .registration = TRUE)
 
 import(Matrix)
 
@@ -7,3 +7,6 @@ export(mosek_clean)
 export(mosek_version)
 export(mosek_read)
 export(mosek_write)
+
+export(mosek_lptoprob)
+export(mosek_qptoprob)

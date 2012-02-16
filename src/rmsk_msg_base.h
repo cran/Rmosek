@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <string>
 #include <sstream>
+#include <memory>
+#include <stdio.h>
 
 
 ___RMSK_INNER_NS_START___
@@ -79,16 +81,58 @@ class auto_array {
 private:
 	T* arr;
 
+	// Overwrite copy constructor (assignment operator) and provide no implementation
+	auto_array(const auto_array& that);
+	auto_array& operator=(const auto_array& that);
+
+	void init(T *obj) {
+	  arr = obj;
+	}
+
 public:
 	operator T*() { return arr; }
 
-	explicit auto_array(T *obj = NULL)
-		: arr(obj) {}
+	explicit auto_array(T *obj = NULL) { init(obj); }
 
 	~auto_array() {
-		if (arr != NULL)
+		if (arr != NULL) {
 			delete[] arr;
+		}
 	}
+
+	void protect(T *obj) {
+	  this->~auto_array();
+	  init(obj);
+	}
+};
+
+class FILE_handle {
+private:
+  FILE * f;
+
+  // Overwrite copy constructor (assignment operator) and provide no implementation
+  FILE_handle(const FILE_handle& that);
+  FILE_handle& operator=(const FILE_handle& that);
+
+  void init(FILE *obj) {
+    f = obj;
+  }
+
+public:
+  operator FILE*() { return f; }
+
+  explicit FILE_handle(FILE *obj = NULL) { init(obj); }
+
+  ~FILE_handle() {
+    if (f != NULL) {
+      fclose(f);
+    }
+  }
+
+  void protect(FILE *obj) {
+    this->~FILE_handle();
+    init(obj);
+  }
 };
 
 

@@ -1,0 +1,103 @@
+Rmosek News
+
+
+CHANGES IN Rmosek VERSION 1.2:
+
+
+  SIGNIFICANT USER-VISIBLE CHANGES:
+
+    *  Linear optimization. The arguments prob$blx and prob$bux have been
+       replaced by prob$bx. This new argument is a numeric-typed matrix with
+       two rows, and can be transformed from previous format with:
+           rBind(blx=prob$blx, bux=prob$bux);
+
+    *  Linear optimization. The arguments prob$blc and prob$buc have been
+       replaced by prob$bc. This new argument is a numeric-typed matrix with
+       two rows, and can be transformed from previous format with:
+           rBind(blc=prob$blc, buc=prob$buc);
+
+    *  Second-order cone optimization. The type of prob$cones have changed from
+       a list to a list-typed matrix. The new format can be pre-allocated as:
+           matrix(list(), nrow=2, ncol=NUMCONES, 
+                          dimnames=list(c("type","sub"),c()))
+
+       The old format can be transformed to the new format with:
+           matrix(unlist(prob$cones, recursive=FALSE), 
+                    nrow=2, dimnames=list(c("type","sub"),c()))
+
+  NEW FEATURES:
+
+    *  Separable convex optimization. Adding the field prob$scopt in the
+       problem description, separable convex operators can be added to 
+       the objective using prob$scopt$opro and to the constraints using 
+       prob$scopt$oprc. 
+       - The 'opro' is a LIST MATRIX and can be pre-allocated as:
+           matrix(list(), nrow=5, ncol=NUMOPRO, 
+                          dimnames=list(c("type","j","f","g","h"),c()))
+       - The 'oprc' is a LIST MATRIX and can be pre-allocated as:
+           matrix(list(), nrow=6, ncol=NUMOPRC, 
+                          dimnames=list(c("type","i","j","f","g","h"),c()))
+
+    *  Separable convex optimization. The option 'scofile' have been added
+       to input the filepath to a file holding separable convex operators
+       in a format supported by 'mskscopt' executable in MOSEK. This option
+       is supported by 'mosek_write' and 'mosek_read'.
+
+    *  Linear optimization. Adding the function 'mosek_lptoprob', it is now 
+       easy to move from a set of definitions similar to those used by the 
+       MATLAB function 'linprog', to a problem description solvable by the 
+       'mosek' function.
+
+    *  Quadratic optimization. Adding the function 'mosek_qptoprob', it is 
+       now easy to move from a set of definitions similar to those used by 
+       the MATLAB function 'quadprog', to a problem description solvable by 
+       the 'mosek' function.
+
+  USERGUIDE:
+
+    *  Chapter "Advanced topics" has been added under which topics that are 
+       interesting only to a smaller subset of users, hard to use correctly, 
+       or not supported natively by MOSEK will be explained.
+       
+    *  Bookmarks and reference-links have been added to ease navigation through
+       the userguide. Most pdf-readers have a shortcut to return focus prior to
+       the click on a link. In Adobe Reader and SumatraPDF: <ALT> + <LEFT>. 
+
+
+
+CHANGES IN Rmosek VERSION 1.0.2:
+Based on rev.79.
+
+  COPYRIGHT NOTICE:
+  
+    *  With the files COPYING and COPYING.LGPL, we have made it even more 
+       explicit that the package is an open source project licensed under the
+       GNU Lesser GPL. This makes it possible to use the package in commercial
+       as well as academic contexts. 
+
+  NEW FEATURES:
+
+    *  Linear constraint matrix. The 'mosek' function now allows sparse 
+       matrices to be specified as a list with fields 'nrow', 'ncol', 'i', 'j'
+       and 'v' (coordinate/triplet format). This format can be used directly 
+       and independently of the package 'Matrix'. Furthermore, this format is 
+       consistent with sparse matrices from package 'slam'.
+        
+    *  Linear constraint matrix. The option 'matrixformat' have been added to
+       allow the 'mosek_read' function to construct sparse matrices in a 
+       user-specific fashion. 
+       - Value "pkgMatrix:COO" or just "COO". A sparse matrix in coordinate / 
+       triplet format from the package 'Matrix'.
+       - Value "pkgMatrix:CSC" or just "CSC". A sparse matrix in compressed 
+       sparse column format from the package 'Matrix'.
+       - Value "simple:COO". A sparse matrix in coordinate / triplet format 
+       written as a list with fields 'nrow', 'ncol', 'i', 'j' and 'v'.
+    
+  USERGUIDE:
+  
+    *  Section "Complete Best Practice example" added which explains a proper
+       way to handle errors, response codes and status keys. The focus is on 
+       scripts and functions working with Rmosek in a non-interactive way (i.e.
+       without a user validating each step).
+       
+       

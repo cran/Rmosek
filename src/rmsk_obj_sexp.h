@@ -27,8 +27,9 @@ private:
 	PROTECT_INDEX object_ipx;
 	SEXP object;
 
-	// Overwrite copy constructor and provide no implementation
+	// Overwrite copy constructor (assignment operator) and provide no implementation
 	SEXP_Handle(const SEXP_Handle& that);
+	SEXP_Handle& operator=(const SEXP_Handle& that);
 
 public:
 	// Allow implicit conversion to SEXP
@@ -52,8 +53,9 @@ private:
 	SEXP_Handle names;
 	R_len_t maxsize;
 
-	// Overwrite copy constructor and provide no implementation
+	// Overwrite copy constructor (assignment operator) and provide no implementation
 	SEXP_NamedVector(const SEXP_NamedVector& that);
+	SEXP_NamedVector& operator=(const SEXP_NamedVector& that);
 
 public:
 	// Simple constructor and implicit SEXP conversion
@@ -87,8 +89,9 @@ private:
 	SEXP_Handle items;
 	R_len_t maxsize;
 
-	// Overwrite copy constructor and provide no implementation
+	// Overwrite copy constructor (assignment operator) and provide no implementation
 	SEXP_Vector(const SEXP_Vector& that);
+	SEXP_Vector& operator=(const SEXP_Vector& that);
 
 public:
 	// Simple constructor and implicit SEXP conversion
@@ -101,6 +104,7 @@ public:
 	void initSTR(R_len_t maxsize, bool static_size=true);
 	void initREAL(R_len_t maxsize, bool static_size=true);
 	void initINT(R_len_t maxsize, bool static_size=true);
+	void initVEC(R_len_t maxsize, bool static_size=true);
 
 	// Stack-like: The number of items added to the vector
 	// Array-like: The capacity of the vector

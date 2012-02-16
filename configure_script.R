@@ -1,9 +1,7 @@
 fileLocation <- "./src/compatibility/pkgMatrixVersion.h";
-pkgMatrixVersion <- unlist(as.list( numeric_version(packageDescription("Matrix",fields="Version")) ));
 
-out <- rep(0, 3);
-out[1:max(length(out),length(pkgMatrixVersion))] <- pkgMatrixVersion;
-
+pkgMatrixVersion <- numeric_version(packageDescription("Matrix",fields="Version"));
+out <- unlist(pkgMatrixVersion);
 
 write("#ifndef RMSK_PKGMATRIXVERSION_H_", file=fileLocation, append=FALSE)
 write("#define RMSK_PKGMATRIXVERSION_H_", file=fileLocation, append=TRUE)
@@ -19,4 +17,6 @@ write("
 ", file=fileLocation, append=TRUE)
 write("", file=fileLocation, append=TRUE)
 write("#endif /* RMSK_PKGMATRIXVERSION_H_ */", file=fileLocation, append=TRUE)
+
+cat(paste("Found package 'Matrix' version", pkgMatrixVersion, "\n"));
 

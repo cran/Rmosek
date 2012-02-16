@@ -36,6 +36,7 @@
 #include "rmsk_namespace.h"
 #include "rmsk_msg_mosek.h"
 #include "rmsk_utils_interface.h"
+#include "rmsk_utils_mosek.h"
 #include "rmsk_utils_sexp.h"
 
 #include "rmsk_obj_arguments.h"
@@ -188,13 +189,14 @@ SEXP mosek_read(SEXP arg0, SEXP arg1)
 		ret_val.initVEC(2);
 
 		// Validate input arguments
-		string filepath = CHARACTER_ELT(arg0, 0);
-		if (filepath.empty()) {
+		if (!Rf_isString(arg0)) {
 			throw msk_exception("Input argument " + ARGNAMES[0] + " should be a " + ARGTYPES[0] + ".");
 		}
 		if (!isNamedVector(arg1)) {
 			throw msk_exception("Input argument " + ARGNAMES[1] + " should be a " + ARGTYPES[1] + ".");
 		}
+
+		string filepath = CHARACTER_ELT(arg0, 0);
 
 		// Define new default values for options
 		options_type default_opts; {
@@ -207,12 +209,26 @@ SEXP mosek_read(SEXP arg0, SEXP arg1)
 		probin.options = default_opts;
 		probin.options.R_read(arg1);
 
-		// Create task and load filepath-model into MOSEK
-		Task_handle &task = global_task;
-		msk_loadproblemfile(task, filepath, probin.options);
+		if (filepath.empty() && probin.options.scofile.empty()) {
+			throw msk_exception("Input argument " + ARGNAMES[0] + " was empty. No problem description was loaded.");
+		}
 
-		// Read the problem from MOSEK
-		probin.MOSEK_read(task);
+		// Read the problem if specified
+		if ( !filepath.empty() ) {
+
+			// Create task and load filepath-model into MOSEK
+			Task_handle &task = global_task;
+			msk_loadproblemfile(task, filepath, probin.options);
+
+			// Read the problem from MOSEK
+			probin.MOSEK_read(task);
+
+		}
+
+		// Read the problem sco-file if specified
+		if ( !probin.options.scofile.empty() ) {
+			msk_loadproblemscofile(probin);
+		}
 
 		// Write the problem to R
 		SEXP_NamedVector prob_val;
@@ -262,13 +278,14 @@ SEXP mosek_write(SEXP arg0, SEXP arg1, SEXP arg2)
 		if (!isNamedVector(arg0)) {
 			throw msk_exception("Input argument '" + ARGNAMES[0] + "' should be a '" + ARGTYPES[0] + "'.");
 		}
-		string filepath = CHARACTER_ELT(arg1, 0);
-		if (filepath.empty()) {
-			throw msk_exception("Input argument '" + ARGNAMES[1] + "' should be a '" + ARGTYPES[1] + "'.");
+		if (!Rf_isString(arg1) || CHARACTER_ELT(arg1, 0).empty()) {
+			throw msk_exception("Input argument '" + ARGNAMES[1] + "' should be a non-empty '" + ARGTYPES[1] + "'.");
 		}
 		if (!isNamedVector(arg2)) {
 			throw msk_exception("Input argument '" + ARGNAMES[2] + "' should be a '" + ARGTYPES[2] + "'.");
 		}
+
+		string filepath = CHARACTER_ELT(arg1, 0);
 
 		// Define new default values for options
 		options_type default_opts; {
@@ -282,11 +299,26 @@ SEXP mosek_write(SEXP arg0, SEXP arg1, SEXP arg2)
 		probin.options.R_read(arg2);
 		probin.R_read(arg0);
 
+		// Ignore the scopt operators when writing problem to MOSEK
+		int probin_scopt_numopro = probin.scopt.numopro;	probin.scopt.numopro = 0;
+		int probin_scopt_numoprc = probin.scopt.numoprc;	probin.scopt.numoprc = 0;
+
 		// Create task and load problem into MOSEK
 		Task_handle &task = global_task;
 		probin.MOSEK_write(task);
 
-		// Write the loaded problem to a file
+		if (probin_scopt_numopro || probin_scopt_numoprc) {
+
+			if ( probin.options.scofile.empty() )
+				throw msk_exception("Field 'scopt' of input argument '" + ARGNAMES[0] + "' could not be written. The option 'scofile' needs a non-empty definition.");
+
+			// Write the loaded scopt operators to a file
+			probin.scopt.numopro = probin_scopt_numopro;
+			probin.scopt.numoprc = probin_scopt_numoprc;
+			msk_saveproblemscofile(probin);
+		}
+
+		// Write the loaded MOSEK problem to a file
 		msk_saveproblemfile(task, filepath, probin.options);
 
 		// Print warning summary
@@ -313,11 +345,11 @@ void R_init_Rmosek(DllInfo *info)
 {
 	// Register mosek utilities to the R console
 	R_CallMethodDef callMethods[] = {
-			{"mosek", (DL_FUNC) &mosek, 2},
-			{"mosek_clean", (DL_FUNC) &mosek_clean, 0},
-			{"mosek_version", (DL_FUNC) &mosek_version, 0},
-			{"mosek_write", (DL_FUNC) &mosek_write, 3},
-			{"mosek_read" , (DL_FUNC) &mosek_read, 2},
+			{"mosek_sym", (DL_FUNC) &mosek, 2},
+			{"mosek_clean_sym", (DL_FUNC) &mosek_clean, 0},
+			{"mosek_version_sym", (DL_FUNC) &mosek_version, 0},
+			{"mosek_write_sym", (DL_FUNC) &mosek_write, 3},
+			{"mosek_read_sym" , (DL_FUNC) &mosek_read, 2},
 			{NULL, NULL, 0}
 	};
 	R_registerRoutines(info, NULL, callMethods, NULL, NULL);

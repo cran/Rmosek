@@ -44,12 +44,7 @@ void msk_getsolution(SEXP_Handle &sol, MSKtask_t task);
 void append_initsol(MSKtask_t task, SEXP_LIST initsol, MSKintt NUMCON, MSKintt NUMVAR);
 
 // Initialise the task and load problem from arguments
-void msk_loadproblem(Task_handle &task,
-					   MSKobjsensee sense, SEXP_NUMERIC c, double c0,
-					   std::auto_ptr<matrix_type> &A,
-					   SEXP_NUMERIC blc, SEXP_NUMERIC buc,
-					   SEXP_NUMERIC blx, SEXP_NUMERIC bux,
-					   conicSOC_type &cones, SEXP_NUMERIC intsub);
+void msk_loadproblem(Task_handle &task, problem_type &probin);
 
 ___RMSK_INNER_NS_END___
 

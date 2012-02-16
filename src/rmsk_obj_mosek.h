@@ -17,8 +17,9 @@ private:
 	bool initialized;
 	MSKenv_t env;
 
-	// Overwrite copy constructor and provide no implementation
+	// Overwrite copy constructor (assignment operator) and provide no implementation
 	Env_handle(const Env_handle& that);
+	Env_handle& operator=(const Env_handle& that);
 
 public:
 	// Simple constructor and implicit MSKenv_t conversion
@@ -36,8 +37,9 @@ private:
 	bool initialized;
 	MSKtask_t task;
 
-	// Overwrite copy constructor and provide no implementation
+	// Overwrite copy constructor (assignment operator) and provide no implementation
 	Task_handle(const Task_handle& that);
+	Task_handle& operator=(const Task_handle& that);
 
 public:
 	// Simple constructor and implicit MSKtask_t conversion

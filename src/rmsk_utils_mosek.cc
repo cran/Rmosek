@@ -483,7 +483,7 @@ void get_dou_parameters(SEXP_NamedVector &paramvec, MSKtask_t task)
 
 void get_str_parameters(SEXP_NamedVector &paramvec, MSKtask_t task)
 {
-	char paramname[MSK_MAX_STR_LEN];	char *value;
+	char paramname[MSK_MAX_STR_LEN];
 	for (int v=MSK_SPAR_BEGIN; v<MSK_SPAR_END; ++v) {
 
 		// Get name of parameter
@@ -516,12 +516,12 @@ bool isdef_solitem(MSKsoltypee s, MSKsoliteme v)
 		case MSK_SOL_ITEM_XC:
 		case MSK_SOL_ITEM_XX:
 			switch (s) {
-			case MSK_SOL_ITR:  return true;
-			case MSK_SOL_BAS:  return true;
-			case MSK_SOL_ITG:  return true;
-			default:
-				throw msk_exception("A solution type was not supported");
-			}
+				case MSK_SOL_ITR:  return true;
+				case MSK_SOL_BAS:  return true;
+				case MSK_SOL_ITG:  return true;
+				default:
+					throw msk_exception("A solution type was not supported");
+			} break;
 
 		// Linear dual variables
 		case MSK_SOL_ITEM_SLC:
@@ -529,26 +529,27 @@ bool isdef_solitem(MSKsoltypee s, MSKsoliteme v)
 		case MSK_SOL_ITEM_SUC:
 		case MSK_SOL_ITEM_SUX:
 			switch (s) {
-			case MSK_SOL_ITR:  return true;
-			case MSK_SOL_BAS:  return true;
-			case MSK_SOL_ITG:  return false;
-			default:
-				throw msk_exception("A solution type was not supported");
-			}
+				case MSK_SOL_ITR:  return true;
+				case MSK_SOL_BAS:  return true;
+				case MSK_SOL_ITG:  return false;
+				default:
+					throw msk_exception("A solution type was not supported");
+			} break;
 
 		// Conic dual variable
 		case MSK_SOL_ITEM_SNX:
 			switch (s) {
-			case MSK_SOL_ITR:  return true;
-			case MSK_SOL_BAS:  return false;
-			case MSK_SOL_ITG:  return false;
-			default:
-				throw msk_exception("A solution type was not supported");
-			}
+				case MSK_SOL_ITR:  return true;
+				case MSK_SOL_BAS:  return false;
+				case MSK_SOL_ITG:  return false;
+				default:
+					throw msk_exception("A solution type was not supported");
+			} break;
 
 		// Ignored variables
 		case MSK_SOL_ITEM_Y:
 			return false;
+			break;
 
 		// Unsupported variables
 		default:
@@ -615,6 +616,8 @@ void getspecs_solitem(MSKsoliteme vtype, MSKintt NUMVAR, MSKintt NUMCON, string 
 
 void msk_getsolution(SEXP_Handle &sol, MSKtask_t task)
 {
+  printdebug("msk_getsolution was called");
+
 	MSKintt NUMVAR, NUMCON;
 	errcatch( MSK_getnumvar(task, &NUMVAR) );
 	errcatch( MSK_getnumcon(task, &NUMCON) );
@@ -723,27 +726,22 @@ void msk_getsolution(SEXP_Handle &sol, MSKtask_t task)
 	}
 }
 
-void msk_loadproblem(Task_handle &task,
-					   MSKobjsensee sense, SEXP_NUMERIC c, double c0,
-					   auto_ptr<matrix_type> &A,
-					   SEXP_NUMERIC blc, SEXP_NUMERIC buc,
-					   SEXP_NUMERIC blx, SEXP_NUMERIC bux,
-					   conicSOC_type &cones, SEXP_NUMERIC intsub)
+void msk_loadproblem(Task_handle &task, problem_type &probin)
 {
-	R_len_t NUMANZ = A->nnz();
-	MSKintt NUMCON = A->nrow();
-	MSKintt NUMVAR = A->ncol();
-	MSKintt NUMINTVAR = numeric_cast<MSKintt>(Rf_length(intsub));
+	R_len_t NUMANZ = probin.A->nnz();
+	MSKintt NUMCON = probin.A->nrow();
+	MSKintt NUMVAR = probin.A->ncol();
+	MSKintt NUMINTVAR = numeric_cast<MSKintt>(Rf_length(probin.intsub));
 
 	/* Bounds on constraints. */
 	MSKboundkeye bkc[NUMCON];
 	for (int i=0; i<NUMCON; i++)
-		set_boundkey(NUMERIC_ELT(blc,i), NUMERIC_ELT(buc,i), &bkc[i]);
+		set_boundkey(RNUMERICMATRIX_ELT(probin.bc,0,i), RNUMERICMATRIX_ELT(probin.bc,1,i), &bkc[i]);
 
 	/* Bounds on variables. */
 	MSKboundkeye bkx[NUMVAR];
 	for (int i=0; i<NUMVAR; i++)
-		set_boundkey(NUMERIC_ELT(blx,i), NUMERIC_ELT(bux,i), &bkx[i]);
+		set_boundkey(RNUMERICMATRIX_ELT(probin.bx,0,i), RNUMERICMATRIX_ELT(probin.bx,1,i), &bkx[i]);
 
 	// Make sure the environment is initialized
 	global_env.init();
@@ -769,45 +767,48 @@ void msk_loadproblem(Task_handle &task,
 		errcatch( MSK_append(task, MSK_ACC_VAR, NUMVAR) );
 
 		/* Optionally add a constant term to the objective. */
-		errcatch( MSK_putcfix(task, c0) );
+		errcatch( MSK_putcfix(task, probin.c0) );
 
 		for (MSKidxt j=0; j<NUMVAR; ++j)
 		{
 			/* Set the linear term c_j in the objective.*/
-			errcatch( MSK_putcj(task, j, NUMERIC_ELT(c,j)) );
+			errcatch( MSK_putcj(task, j, NUMERIC_ELT(probin.c,j)) );
 
 			/* Set the bounds on variable j.
 			   blx[j] <= x_j <= bux[j] */
 			errcatch( MSK_putbound(task,
-						MSK_ACC_VAR,			/* Put bounds on variables.*/
-						j, 						/* Index of variable.*/
-						bkx[j],  				/* Bound key.*/
-						NUMERIC_ELT(blx,j),  	/* Numerical value of lower bound.*/
-						NUMERIC_ELT(bux,j))); 	/* Numerical value of upper bound.*/
+						MSK_ACC_VAR,							/* Put bounds on variables.*/
+						j, 										/* Index of variable.*/
+						bkx[j],  								/* Bound key.*/
+						RNUMERICMATRIX_ELT(probin.bx,0,j),  	/* Numerical value of lower bound.*/
+						RNUMERICMATRIX_ELT(probin.bx,1,j))); 	/* Numerical value of upper bound.*/
 		}
 
 		/* Input columns of A */
-		A->MOSEK_write(task);
+		probin.A->MOSEK_write(task);
 
 		/* Set the bounds on constraints.
 		 * for i=1, ...,NUMCON : blc[i] <= constraint i <= buc[i] */
 		for (MSKidxt i=0; i<NUMCON; ++i)
 			errcatch( MSK_putbound(task,
-					MSK_ACC_CON,			/* Put bounds on constraints.*/
-					i,						/* Index of constraint.*/
-					bkc[i],					/* Bound key.*/
-					NUMERIC_ELT(blc,i),		/* Numerical value of lower bound.*/
-					NUMERIC_ELT(buc,i)));	/* Numerical value of upper bound.*/
+					MSK_ACC_CON,							/* Put bounds on constraints.*/
+					i,										/* Index of constraint.*/
+					bkc[i],									/* Bound key.*/
+					RNUMERICMATRIX_ELT(probin.bc,0,i),		/* Numerical value of lower bound.*/
+					RNUMERICMATRIX_ELT(probin.bc,1,i)));	/* Numerical value of upper bound.*/
 
 		/* Set the conic constraints. */
-		cones.MOSEK_write(task);
+		probin.cones.MOSEK_write(task);
+
+		/* Set the scopt operators. */
+		probin.scopt.MOSEK_write(task, probin);
 
 		/* Set the integer variables */
 		for (MSKidxt j=0; j<NUMINTVAR; ++j)
-			errcatch( MSK_putvartype(task, INTEGER_ELT(intsub,j)-1, MSK_VAR_TYPE_INT) );
+			errcatch( MSK_putvartype(task, INTEGER_ELT(probin.intsub,j)-1, MSK_VAR_TYPE_INT) );
 
 		/* Set objective sense. */
-		errcatch( MSK_putobjsense(task, sense) );
+		errcatch( MSK_putobjsense(task, probin.sense) );
 
 	} catch (exception const& e) {
 		printoutput("An error occurred while setting up the problem.\n", typeERROR);

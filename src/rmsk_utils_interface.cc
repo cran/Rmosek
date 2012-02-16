@@ -172,9 +172,11 @@ void msk_solve(SEXP_NamedVector &ret_val, Task_handle &task, options_type &optio
 
 		/* Print a summary containing information
 		 * about the solution for debugging purposes. */
+		printdebug("MSK_solutionsummary - start");
 		errcatch( MSK_solutionsummary(task, MSK_STREAM_LOG) );
+		printdebug("MSK_solutionsummary - done");
 
-		/* Extract solution from Mosek to R */
+		/* Extract solution from MOSEK to R */
 		SEXP_Handle sol_val;
 		msk_getsolution(sol_val, task);
 		ret_val.pushback("sol", sol_val);
@@ -203,6 +205,11 @@ void msk_loadproblemfile(Task_handle &task, std::string filepath, options_type &
 	}
 }
 
+void msk_loadproblemscofile(problem_type &probin) {
+	probin.scopt.FILE_read(probin.options.scofile);
+	probin.numscoprs = probin.scopt.numoprc + probin.scopt.numopro;
+}
+
 /* Save a problem description to file */
 void msk_saveproblemfile(Task_handle &task, string filepath, options_type &options) {
 
@@ -224,6 +231,12 @@ void msk_saveproblemfile(Task_handle &task, string filepath, options_type &optio
 
 	// Write to filepath model (filetypes: .lp, .mps, .opf, .mbt)
 	errcatch( MSK_writedata(task, const_cast<MSKCONST char*>(filepath.c_str())) );
+}
+
+void msk_saveproblemscofile(problem_type &probin) {
+
+	probin.scopt.FILE_write(probin.options.scofile, probin);
+
 }
 
 ___RMSK_INNER_NS_END___

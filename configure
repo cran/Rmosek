@@ -4,7 +4,7 @@ echo "Configuring for a UNIX-alike platform (sub-architecture: \"$R_ARCH\")";
 
 # Run the configure_script.R
 if [ x"$R_HOME" != x ]; then
-  $("$R_HOME/bin/Rscript" ./configure_script.R) 
+  echo $("$R_HOME/bin/Rscript" ./configure_script.R) 
 fi;
 
 # The location the Makevars will look for definitions

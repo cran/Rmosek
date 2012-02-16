@@ -30,9 +30,11 @@ void msk_solve(SEXP_NamedVector &ret_val, Task_handle &task, options_type &optio
 
 // Load a problem description from file
 void msk_loadproblemfile(Task_handle &task, std::string filepath, options_type &options);
+void msk_loadproblemscofile(problem_type &probin);
 
 // Save a problem description to file
 void msk_saveproblemfile(Task_handle &task, std::string filepath, options_type &options);
+void msk_saveproblemscofile(problem_type &probin);
 
 ___RMSK_INNER_NS_END___
 

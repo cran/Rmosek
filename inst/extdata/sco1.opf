@@ -1,0 +1,31 @@
+[comment]
+   Written by MOSEK version 6.0.0.128
+   Date 31-01-12
+   Time 09:31:41
+[/comment]
+
+[hints]
+  [hint NUMVAR] 3 [/hint]
+  [hint NUMCON] 2 [/hint]
+  [hint NUMANZ] 3 [/hint]
+  [hint NUMQNZ] 0 [/hint]
+[/hints]
+
+[variables disallow_new_variables]
+  x1 x2 x3 
+[/variables]
+
+[objective minimize 'obj']
+   x1
+[/objective]
+
+[constraints]
+  [con 'c1']            <= 1e+00 [/con]
+  [con 'c2']            x1 + 2e+00 x2 - x3 = 0e+00 [/con]
+[/constraints]
+
+[bounds]
+  [b]          0 <= * [/b]
+  [b]               x1,x2 free [/b]
+[/bounds]
+

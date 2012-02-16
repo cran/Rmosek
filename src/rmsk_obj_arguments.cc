@@ -28,7 +28,8 @@ options_type::options_type() :
 	verbose(10),
 	writebefore(""),
 	writeafter(""),
-	matrixformat(pkgMatrixCOO)
+	matrixformat(pkgMatrixCOO),
+	scofile("")
 {}
 
 
@@ -50,6 +51,7 @@ void options_type::R_read(SEXP_LIST object) {
 	list_seek_Boolean(&usesol, arglist, R_ARGS.usesol, true);
 	list_seek_String(&writebefore, arglist, R_ARGS.writebefore, true);
 	list_seek_String(&writeafter, arglist, R_ARGS.writeafter, true);
+	list_seek_String(&scofile, arglist, R_ARGS.scofile, true);
 
 	// Read matrix format
 	string matrixformat_name;
@@ -73,6 +75,12 @@ const problem_type::R_ARGS_type problem_type::R_ARGS;
 problem_type::problem_type() :
 	initialized(false),
 
+	numnz		(0),
+	numcon		(0),
+	numvar		(0),
+	numintvar	(0),
+	numcones	(0),
+	numscoprs	(0),
 	sense	(MSK_OBJECTIVE_SENSE_UNDEFINED),
 	c0		(0),
 	options	(options_type())
@@ -107,15 +115,18 @@ void problem_type::R_read(SEXP_LIST object) {
 	list_seek_Scalar(&c0, arglist, R_ARGS.c0, true);
 
 	// Constraint and Variable Bounds
-	list_seek_Numeric(blc, arglist, R_ARGS.blc);	validate_Numeric(blc, R_ARGS.blc, numcon);
-	list_seek_Numeric(buc, arglist, R_ARGS.buc);	validate_Numeric(buc, R_ARGS.buc, numcon);
-	list_seek_Numeric(blx, arglist, R_ARGS.blx);	validate_Numeric(blx, R_ARGS.blx, numvar);
-	list_seek_Numeric(bux, arglist, R_ARGS.bux);	validate_Numeric(bux, R_ARGS.bux, numvar);
+	list_seek_RNumericMatrix(bc, arglist, R_ARGS.bc);	validate_RMatrix(bc, R_ARGS.bc, 2, numcon);
+	list_seek_RNumericMatrix(bx, arglist, R_ARGS.bx);	validate_RMatrix(bx, R_ARGS.bx, 2, numvar);
 
 	// Cones
-	SEXP_Handle sexpcones;	list_seek_NamedVector(sexpcones, arglist, R_ARGS.cones, true);
+	SEXP_Handle sexpcones;	list_seek_RListMatrix(sexpcones, arglist, R_ARGS.cones, true);
 	cones.R_read(sexpcones);
 	numcones = cones.numcones;
+
+	// Scopt operators
+	SEXP_Handle sexpscopt;  list_seek_NamedVector(sexpscopt, arglist, R_ARGS.scopt, true);
+	scopt.R_read(sexpscopt);
+	numscoprs = scopt.numoprc + scopt.numopro;
 
 	// Integers variables and initial solutions
 	list_seek_Numeric(intsub, arglist, R_ARGS.intsub, true);
@@ -141,35 +152,49 @@ void problem_type::R_read(SEXP_LIST object) {
 }
 
 void problem_type::R_write(SEXP_NamedVector &prob_val) {
-	if (!initialized) {
-		throw msk_exception("Internal error in problem_type::R_write, no problem was loaded");
-	}
 
 	printdebug("Started writing R problem output");
-
 	prob_val.initVEC( numeric_cast<R_len_t>( problem_type::R_ARGS.arglist.size() ) );
+
+	if (!initialized) {
+
+		// Special treatment of scopt operators
+		if (numscoprs > 0) {
+			SEXP_Handle sexpscopt;	scopt.R_write(sexpscopt);
+			prob_val.pushback("scopt", sexpscopt);
+			return;
+		}
+
+		throw msk_exception("Internal error in problem_type::R_write, no problem was loaded");
+	}
 
 	// Objective sense
 	prob_val.pushback("sense", get_objective(sense));
 
 	// Objective
 	prob_val.pushback("c", c);
-	prob_val.pushback("c0", c0);
+	if (c0 != 0.0) {
+		prob_val.pushback("c0", c0);
+	}
 
 	// Constraint Matrix A
 	SEXP_Handle MatrixA;	A->R_write(MatrixA);
 	prob_val.pushback("A", MatrixA);
 
 	// Constraint and variable bounds
-	prob_val.pushback("blc", blc);
-	prob_val.pushback("buc", buc);
-	prob_val.pushback("blx", blx);
-	prob_val.pushback("bux", bux);
+	prob_val.pushback("bc", bc);
+	prob_val.pushback("bx", bx);
 
 	// Cones
 	if (numcones > 0) {
 		SEXP_Handle sexpcones;	cones.R_write(sexpcones);
 		prob_val.pushback("cones", sexpcones);
+	}
+
+	// Scopt operators
+	if (numscoprs > 0) {
+		SEXP_Handle sexpscopt;	scopt.R_write(sexpscopt);
+		prob_val.pushback("scopt", sexpscopt);
 	}
 
 	// Integer subindexes
@@ -210,6 +235,9 @@ void problem_type::MOSEK_read(Task_handle &task) {
 		errcatch( MSK_getnumvar(task, &numvar) );
 		errcatch( MSK_getnumintvar(task, &numintvar) );
 		errcatch( MSK_getnumcone(task, &numcones) );
+
+		// Scopt operators are not stored in MOSEK!
+		numscoprs = 0;
 	}
 
 	// Objective sense and constant
@@ -255,26 +283,62 @@ void problem_type::MOSEK_read(Task_handle &task) {
 	{
 		printdebug("problem_type::MOSEK_read - Constraint bounds");
 
-		SEXP_Vector blcvec;		blcvec.initREAL(numcon);	blc.protect(blcvec);
-		SEXP_Vector bucvec;		bucvec.initREAL(numcon);	buc.protect(bucvec);
-
-		double *pblc = REAL(blc);
-		double *pbuc = REAL(buc);
-
+		auto_array<double> pblc( new double[numcon] );
+		auto_array<double> pbuc( new double[numcon] );
 		get_boundvalues(task, pblc, pbuc, MSK_ACC_CON, numcon);
+
+		SEXP_Vector bcvec;		bcvec.initREAL(2*numcon);	bc.protect(bcvec);
+		double *pbc = REAL(bc);
+		for (int i=0; i<numcon; ++i) {
+			pbc[2*i+0] = pblc[i];
+			pbc[2*i+1] = pbuc[i];
+		}
+
+		// Add dimensions and names
+		SEXP_Handle dim( Rf_allocVector(INTSXP, 2) );
+		INTEGER(dim)[0] = 2; INTEGER(dim)[1] = numcon;
+		Rf_setAttrib(bc, R_DimSymbol, dim);
+
+		SEXP_Handle colnames( Rf_allocVector(STRSXP, 0) );
+		SEXP_Handle rownames( Rf_allocVector(STRSXP, 2) );
+			SET_STRING_ELT(rownames, 0, Rf_mkChar("blc"));
+			SET_STRING_ELT(rownames, 1, Rf_mkChar("buc"));
+
+		SEXP_Handle dimnames( Rf_allocVector(VECSXP, 2) );
+		SET_VECTOR_ELT(dimnames, 0, rownames);
+		SET_VECTOR_ELT(dimnames, 1, colnames);
+		Rf_setAttrib(bc, R_DimNamesSymbol, dimnames);
 	}
 
 	// Variable bounds
 	{
 		printdebug("problem_type::MOSEK_read - Variable bounds");
 
-		SEXP_Vector blxvec;		blxvec.initREAL(numvar);	blx.protect(blxvec);
-		SEXP_Vector buxvec;		buxvec.initREAL(numvar);	bux.protect(buxvec);
-
-		double *pblx = REAL(blx);
-		double *pbux = REAL(bux);
-
+		auto_array<double> pblx( new double[numvar] );
+		auto_array<double> pbux( new double[numvar] );
 		get_boundvalues(task, pblx, pbux, MSK_ACC_VAR, numvar);
+
+		SEXP_Vector bxvec;		bxvec.initREAL(2*numvar);	bx.protect(bxvec);
+		double *pbx = REAL(bx);
+		for (int i=0; i<numvar; ++i) {
+			pbx[2*i+0] = pblx[i];
+			pbx[2*i+1] = pbux[i];
+		}
+
+		// Add dimensions and names
+		SEXP_Handle dim( Rf_allocVector(INTSXP, 2) );
+		INTEGER(dim)[0] = 2; INTEGER(dim)[1] = numvar;
+		Rf_setAttrib(bx, R_DimSymbol, dim);
+
+		SEXP_Handle colnames( Rf_allocVector(STRSXP, 0) );
+		SEXP_Handle rownames( Rf_allocVector(STRSXP, 2) );
+			SET_STRING_ELT(rownames, 0, Rf_mkChar("blx"));
+			SET_STRING_ELT(rownames, 1, Rf_mkChar("bux"));
+
+		SEXP_Handle dimnames( Rf_allocVector(VECSXP, 2) );
+		SET_VECTOR_ELT(dimnames, 0, rownames);
+		SET_VECTOR_ELT(dimnames, 1, colnames);
+		Rf_setAttrib(bx, R_DimNamesSymbol, dimnames);
 	}
 
 	// Cones
@@ -347,9 +411,7 @@ void problem_type::MOSEK_write(Task_handle &task) {
 	printdebug("Started writing MOSEK problem input");
 
 	/* Set problem description */
-	msk_loadproblem(task, sense, c, c0,
-			A, blc, buc, blx, bux,
-			cones, intsub);
+	msk_loadproblem(task, *this);
 
 	/* Set initial solution */
 	if (options.usesol) {
