@@ -7,13 +7,13 @@
 #{
 #  dll <- library.dynam("Rmosek", package=pkgname, lib.loc=NULL) 
 # 
-#  syms = getNativeSymbolInfo(c("mosek", "mosek_clean", "mosek_version", "mosek_read", "mosek_write"), dll)
+#  syms = getNativeSymbolInfo(c("mosek_sym", "mosek_clean_sym", "mosek_version_sym", "mosek_read_sym", "mosek_write_sym"), dll)
 #
 #  # Create symbols in this package
 #  env = environment(.onLoad)
-#  sapply(names(syms), function(id) assign( paste(id,"_sym",sep="") , syms[[id]], env))
+#  sapply(names(syms), function(id) assign(id, syms[[id]], env))
 #}
-#
+
 
 mosek = 
 function(problem, opts=list())

@@ -44,6 +44,11 @@ void terminate_successfully(SEXP_NamedVector &ret_val) /* nothrow */ {
 		reset_global_ressources();
 		mosek_interface_termination_success = true;
 		msk_addresponse(ret_val, get_msk_response(MSK_RES_OK), false);
+
+		// Print warning summary
+		if (mosek_interface_warnings > 0) {
+			printoutput("The R-to-MOSEK interface completed with " + tostring(mosek_interface_warnings) + " warning(s)\n\n", typeWARNING);
+		}
 	}
 	catch (exception const& e) { /* Just terminate.. */ }
 }
@@ -171,14 +176,15 @@ void msk_solve(SEXP_NamedVector &ret_val, Task_handle &task, options_type &optio
 		}
 
 		/* Print a summary containing information
-		 * about the solution for debugging purposes. */
-		printdebug("MSK_solutionsummary - start");
-		errcatch( MSK_solutionsummary(task, MSK_STREAM_LOG) );
-		printdebug("MSK_solutionsummary - done");
+		 * about the solution and optimizer for debugging purposes. */
+		if (mosek_interface_verbose >= typeINFO) {
+			errcatch( MSK_solutionsummary(task, MSK_STREAM_LOG) );
+			errcatch( MSK_optimizersummary(task, MSK_STREAM_LOG) );
+		}
 
 		/* Extract solution from MOSEK to R */
 		SEXP_Handle sol_val;
-		msk_getsolution(sol_val, task);
+		msk_getsolution(sol_val, task, options);
 		ret_val.pushback("sol", sol_val);
 
 	} catch (exception const& e) {

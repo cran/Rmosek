@@ -26,33 +26,39 @@ public:
 	static const struct R_ARGS_type {
 
 		std::vector<std::string> arglist;
+		const std::string verbose;
 		const std::string useparam;
 		const std::string usesol;
-		const std::string verbose;
+		const std::string getinfo;
+		const std::string soldetail;
 		const std::string writebefore;
 		const std::string writeafter;
 		const std::string matrixformat;
 		const std::string scofile;
 
 		R_ARGS_type() :
+			verbose("verbose"),
 			useparam("useparam"),
 			usesol("usesol"),
-			verbose("verbose"),
+			getinfo("getinfo"),
+			soldetail("soldetail"),
 			writebefore("writebefore"),
 			writeafter("writeafter"),
 			matrixformat("matrixformat"),
 			scofile("scofile")
 		{
-			std::string temp[] = {useparam, usesol, verbose, writebefore, writeafter, matrixformat, scofile};
+			std::string temp[] = {verbose, useparam, usesol, getinfo, soldetail, writebefore, writeafter, matrixformat, scofile};
 			arglist = std::vector<std::string>(temp, temp + sizeof(temp)/sizeof(std::string));
 		}
 	} R_ARGS;
 
 
 	// Data definition (intentionally kept close to R types)
+	double verbose;
 	bool useparam;
 	bool usesol;
-	double verbose;
+	bool getinfo;
+	double soldetail;
 	std::string	writebefore;
 	std::string	writeafter;
 	matrixformat_enum matrixformat;

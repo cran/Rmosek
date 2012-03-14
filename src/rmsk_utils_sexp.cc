@@ -3,6 +3,9 @@
 
 #include "rmsk_numeric_casts.h"
 
+#include <Rembedded.h>
+#include <Rdefines.h>
+
 #include <string>
 #include <vector>
 #include <memory>
@@ -12,7 +15,6 @@ ___RMSK_INNER_NS_START___
 using std::string;
 using std::vector;
 using std::auto_ptr;
-
 
 // ------------------------------
 // CHECK SEXP
@@ -176,13 +178,46 @@ void list_obtain_SparseMatrix(auto_ptr<matrix_type> &out, SEXP val, string name,
 		// Is this a simple matrix coordinate format??
 		tempMatrix.reset( new simple_matrixCOO_type );
 
-	} else if (Matrix_isclass_triplet(val)) {
-		// This is a sparse coordinate matrix from package Matrix
-		tempMatrix.reset( new pkgMatrixCOO_type );
-
 	} else {
-		// Otherwise: Try to read with package 'Matrix' and convert to compressed sparse column format
-		tempMatrix.reset( new pkgMatrixCSC_type );
+
+		int errorOccured = 0;
+		SEXP_Handle mosek_interface_pkgNamespace, funcval;
+
+		// Call R-function 'obtain_sparsematrix'
+		mosek_interface_pkgNamespace.protect(R_tryEval( Rf_lang2(Rf_install("getNamespace"),Rf_mkString("Rmosek")), R_GlobalEnv, &errorOccured ));
+		if (!errorOccured) {
+			funcval.protect(R_tryEval( Rf_lang2(Rf_install("obtain_sparsematrix"),val), mosek_interface_pkgNamespace, &errorOccured ));
+		}
+		if (errorOccured) {
+			throw msk_exception("Internal error in list_obtain_SparseMatrix: Failed to call 'obtain_sparsematrix' when processing variable '" + name + "'.");
+		}
+
+		// React to output of 'obtain_sparsematrix'
+		if (Rf_isNumeric(funcval)) {
+			switch (INTEGER_ELT(funcval, 0)) {
+			case 0: // Object 'val' was fine
+				break;
+			case 1: // Object 'val' was bad
+				throw msk_exception("Variable '" + name + "' should either be a list or a matrix from the Matrix Package (preferably sparse).");
+				break;
+			default: // Should never happen..
+				throw msk_exception("Internal error in obtain_sparsematrix: Numeric exit code of 'obtain_sparsematrix' not supported.");
+				break;
+			}
+		} else {
+			// Object 'val' was converted
+			printwarning("Variable '" + name + "' converted to a CSC matrix using as(obj,'CsparseMatrix'). Alternative was a COO matrix using as(obj,'TsparseMatrix'). See function 'mosek_read' in the userguide or R-manual for supported formats.");
+			val = funcval;
+		}
+
+		if (Matrix_isclass_triplet(val)) {
+			// This is a sparse coordinate matrix from package Matrix
+			tempMatrix.reset( new pkgMatrixCOO_type );
+
+		} else {
+			// Otherwise: Try to read compressed sparse column format with package 'Matrix'
+			tempMatrix.reset( new pkgMatrixCSC_type );
+		}
 	}
 
 	tempMatrix->R_read(val, name);

@@ -1,8 +1,56 @@
 Rmosek News
 
+CHANGES IN Rmosek VERSION 1.2.2:
+
+
+  NEW FEATURES:
+
+    *  Linear optimization. Far more matrices from package 'Matrix' are now 
+       allowed as input variable 'A'. Only compressed column sparse (CSC) and 
+       coordinate/triplet (COO) formats are supported in C/C++; others will be
+       converted with warning indicating bad performace.
+
+    *  Separable convex optimization. Added validation of variable bounds.
+       Warnings are now issued for each non-safe bound which could cause
+       unexpected termination.
+
+    *  Separable convex optimization. Added simple check for disciplined
+       convexity. Information items are issued for each violation, followed
+       by a single warning message. Note that a problem can easily be convex
+       and solvable, even if it is not disciplined convex.
+
+
+
+CHANGES IN Rmosek VERSION 1.2.1:
+Based on rev.92.
+
+  USER-VISIBLE CHANGES:
+
+    *  Optimizer summary added to function mosek. Solution and optimizer
+       summaries are now only shown when option 'verbose' is >=4.
+
+  NEW FEATURES:
+
+    *  Solution item 'skn' holding conic constraint status keys, added to 
+       conic optimization problems.
+
+    *  Option 'soldetail' added to function mosek. 
+       = 0 is default. 
+       = 1 adds solution items 'pobjval' + 'dobjval' to ITR and BAS, and
+           'pobjval' + 'pobjbound' to INT. Note that 'pobjbound' may be NA if
+           no relaxation have been used to solve the problem.
+       = 2 adds solution item 'maxinfeas' with maximal infeasibilities.
+
+    *  Option 'getinfo' added to functions mosek, mosek_read and mosek_write.
+       = FALSE is default.
+       = TRUE adds 'dinfo' and 'iinfo' structures to returned value list. 
+           dinfo items are extracted from MSK_DINF_*.
+           iinfo items are extracted from MSK_IINF_* and MSK_LIINF_*.
+
+
 
 CHANGES IN Rmosek VERSION 1.2:
-
+Based on rev.86.
 
   SIGNIFICANT USER-VISIBLE CHANGES:
 

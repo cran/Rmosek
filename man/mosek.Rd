@@ -33,6 +33,8 @@ opts				\tab LIST			\tab (OPTIONAL) 	\cr
 ..$verbose			\tab NUMERIC 			\tab (OPTIONAL)		\cr
 ..$usesol			\tab BOOLEAN			\tab (OPTIONAL)		\cr
 ..$useparam 			\tab BOOLEAN			\tab (OPTIONAL)		\cr
+..$soldetail			\tab NUMERIC			\tab (OPTIONAL)		\cr
+..$getinfo			\tab BOOLEAN			\tab (OPTIONAL)		\cr
 ..$writebefore			\tab STRING (filepath) 		\tab (OPTIONAL) 	\cr
 ..$writeafter			\tab STRING (filepath) 		\tab (OPTIONAL) 	\cr
 }}
@@ -70,6 +72,8 @@ The optimization process can be terminated at any moment using CTRL + C.
   .$verbose			\tab Output logging verbosity \cr
   .$usesol			\tab Whether to use the initial solution \cr
   .$useparam			\tab Whether to use the specified parameter settings \cr
+  .$soldetail			\tab Level of detail used to describe solutions. \cr
+  .$getinfo			\tab Whether to extract MOSEK information items \cr
   .$writebefore			\tab Filepath used to export model \cr
   .$writeafter			\tab Filepath used to export model and solution \cr
 }
@@ -85,16 +89,32 @@ r				\tab LIST		\tab 			\cr
 ....$itr/$bas/$int		\tab LIST		\tab (SOLVER DEPENDENT) \cr
 ......$solsta			\tab STRING		\tab 			\cr
 ......$prosta			\tab STRING		\tab 			\cr
+......$skc			\tab STRING VECTOR	\tab                    \cr
 ......$skx			\tab STRING VECTOR	\tab 			\cr
-......$skc			\tab STRING VECTOR	\tab 			\cr
-......$xx			\tab NUMERIC VECTOR	\tab 			\cr
+......$skn			\tab STRING VECTOR	\tab (NOT IN $bas)      \cr
 ......$xc			\tab NUMERIC VECTOR	\tab 			\cr
+......$xx			\tab NUMERIC VECTOR	\tab 			\cr
 ......$slc			\tab NUMERIC VECTOR	\tab (NOT IN $int) 	\cr
 ......$suc			\tab NUMERIC VECTOR	\tab (NOT IN $int) 	\cr
 ......$slx			\tab NUMERIC VECTOR	\tab (NOT IN $int) 	\cr
 ......$sux 			\tab NUMERIC VECTOR	\tab (NOT IN $int) 	\cr
 ......$snx 			\tab NUMERIC VECTOR	\tab (NOT IN $int/$bas) \cr
-}}
+......$pobjval			\tab NUMERIC		\tab *			\cr
+......$dobjval			\tab NUMERIC		\tab *(NOT IN $int)	\cr
+......$pobjbound		\tab NUMERIC		\tab *($int ONLY)       \cr
+......$maxinfeas		\tab LIST		\tab *			\cr
+........$pbound			\tab NUMERIC		\tab *			\cr
+........$peq	                \tab NUMERIC            \tab *                  \cr
+........$pcone	                \tab NUMERIC            \tab *(NOT IN $bas)     \cr
+........$dbound	                \tab NUMERIC            \tab *(NOT IN $int)     \cr
+........$deq	                \tab NUMERIC            \tab *(NOT IN $int)     \cr
+........$dcone	                \tab NUMERIC            \tab *(NOT IN $int/$bas)\cr
+........$int	                \tab NUMERIC            \tab *($int ONLY)       \cr
+..$iinfo/$dinfo			\tab LIST		\tab *             	\cr
+....$<MSK_INFO>			\tab NUMERIC		\tab *			\cr
+}
+\tabular{l}{*Starred items must be requested using an option.\cr}
+}
 
 The result is a named list containing the response of the MOSEK Optimization Library. A response code of zero is the signal of success.
 
@@ -103,6 +123,8 @@ Depending on the specified solver, one or more solutions may be returned. The in
 The problem status \code{prosta} in all solutions shows the feasibility of your problem description. All solutions are described by a solution status \code{solsta} (e.g. optimal) along with the variable and constraint activities. All activities will further have a bound key that specify their value in relation to the declared bounds.
 
 Dual variables are returned for all defined bounds wherever possible. Integer solutions \code{int} does not have any dual variables as such definitions would not make sense. Basic (corner point) solutions \code{bas} would never be returned if the problem had conic constraints, and does not define \code{snx}.
+
+Setting option \code{soldetail} larger than 1 extracts \code{pobjval}, \code{pobjval} and \code{pobjbound}. Larger than 2 extracts \code{maxinfeas}. Setting option \code{getinfo} to \code{TRUE} extracts \code{iinfo} and \code{dinfo}.
 \tabular{lll}{
   r			\tab Result \cr
   .$response		\tab Response from the MOSEK Optimization Library \cr
@@ -112,15 +134,29 @@ Dual variables are returned for all defined bounds wherever possible. Integer so
   ..$itr/$bas/$int	\tab Solution description  \cr
   ...$solsta		\tab Solution status  \cr
   ...$prosta		\tab Problem status  \cr
-  ...$skx		\tab Variable bound keys  \cr
-  ...$skc		\tab Constraint bound keys  \cr
-  ...$xx		\tab Variable activities  \cr
+  ...$skc		\tab Linear constraint status keys  \cr
+  ...$skx		\tab Variable bound status keys  \cr
+  ...$skn		\tab Conic constraint status keys  \cr
   ...$xc		\tab Constraint activities  \cr
+  ...$xx		\tab Variable activities  \cr
   ...$slc		\tab Dual variable for constraint lower bounds  \cr
   ...$suc		\tab Dual variable for constraint upper bounds  \cr
   ...$slx		\tab Dual variable for variable lower bounds  \cr
   ...$sux		\tab Dual variable for variable lower bounds  \cr
   ...$snx		\tab Dual variable of conic constraints \cr
+  ...$pobjval           \tab Primal objective value \cr
+  ...$dobjval           \tab Dual objective value \cr
+  ...$pobjbound         \tab Best primal objective bound from relaxations \cr
+  ...$maxinfeas         \tab Maximal solution infeasibilities \cr
+  ....$pbound           \tab Primal inequality constraints \cr
+  ....$peq              \tab Primal equality constraints \cr
+  ....$pcone            \tab Primal cone constraints \cr
+  ....$dbound           \tab Dual inequality constraints \cr
+  ....$deq              \tab Dual equality constraints \cr
+  ....$dcone            \tab Dual cone constraints \cr
+  ....$int              \tab Integer variables \cr
+  .$iinfo/$dinfo	\tab MOSEK information list \cr
+  ..$<MSK_INFO>		\tab Value of any <MSK_INFO> \cr
 }
 }
 \examples{
@@ -134,7 +170,7 @@ Dual variables are returned for all defined bounds wherever possible. Integer so
                  buc = c(30,Inf,25))
  lo1$bx <- rbind(blx = c(0,0,0,0),
                  bux = c(Inf,10,Inf,Inf))
- r <- mosek(lo1)
+ r <- mosek(lo1, list( soldetail = 1 ))
 }
 \seealso{
 \code{\link{mosek_version}}

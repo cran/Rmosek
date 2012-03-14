@@ -9,19 +9,32 @@ function(f=NA, A=NA, b=NA, Aeq=NA, beq=NA, lb=NA, ub=NA) {
 
   if (all(!is.na(A)) || all(!is.na(b))) {
     stopifnot(all(!is.na(A)) && all(!is.na(b)));
+
+    # Convert to a supported matrix format (COO or CSC)
+    if (!is(A, 'TsparseMatrix')) {
+      A <- as(A, 'CsparseMatrix');
+    }
+
     stopifnot(nrow(A) == length(b));
     stopifnot(ncol(A) == length(f));
+
   } else {
-    A <- Matrix(0, nrow=0, ncol=length(f));
+    A <- Matrix(0, nrow=0, ncol=length(f), sparse=TRUE);
     b <- numeric(0);
   }
 
   if (all(!is.na(Aeq)) || all(!is.na(beq))) {
     stopifnot(all(!is.na(Aeq)) && all(!is.na(beq)));
+
+    # Convert to a supported matrix format (COO or CSC)
+    if (!is(Aeq, 'TsparseMatrix')) {
+      Aeq <- as(Aeq, 'CsparseMatrix');
+    }
+
     stopifnot(nrow(Aeq) == length(beq));
     stopifnot(ncol(Aeq) == length(f));
   } else {
-    Aeq <- Matrix(0, nrow=0, ncol=length(f));
+    Aeq <- Matrix(0, nrow=0, ncol=length(f), sparse=TRUE);
     beq <- numeric(0);
   }
 
@@ -68,19 +81,31 @@ function(F=NA, f=NA, A=NA, b=NA, Aeq=NA, beq=NA, lb=NA, ub=NA) {
 
   if (all(!is.na(A)) || all(!is.na(b))) {
     stopifnot(all(!is.na(A)) && all(!is.na(b)));
+
+    # Convert to a supported matrix format (COO or CSC)
+    if (!is(A, 'TsparseMatrix')) {
+      A <- as(A, 'CsparseMatrix');
+    }
+
     stopifnot(nrow(A) == length(b));
     stopifnot(ncol(A) == length(f));
   } else {
-    A <- Matrix(0, nrow=0, ncol=length(f));
+    A <- Matrix(0, nrow=0, ncol=length(f), sparse=TRUE);
     b <- numeric(0);
   }
 
   if (all(!is.na(Aeq)) || all(!is.na(beq))) {
     stopifnot(all(!is.na(Aeq)) && all(!is.na(beq)));
+
+    # Convert to a supported matrix format (COO or CSC)
+    if (!is(Aeq, 'TsparseMatrix')) {
+      Aeq <- as(Aeq, 'CsparseMatrix');
+    }
+
     stopifnot(nrow(Aeq) == length(beq));
     stopifnot(ncol(Aeq) == length(f));
   } else {
-    Aeq <- Matrix(0, nrow=0, ncol=length(f));
+    Aeq <- Matrix(0, nrow=0, ncol=length(f), sparse=TRUE);
     beq <- numeric(0);
   }
 

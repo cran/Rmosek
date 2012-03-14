@@ -112,9 +112,9 @@ MSK_scvaltosymnam (
 	MSKscopre whichvalue,
     char * symbolicname);
 
-MSKbooleant
+void
 validate_scopr(MSKscopre opr, int i, int j, double f, double g, double h,
-		problem_type &probin);
+		problem_type &probin, std::string oprname);
 
 MSKintt MSKAPI
 SCeval(MSKuserhandle_t nlhandle,

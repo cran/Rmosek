@@ -79,7 +79,9 @@ SEXP mosek(SEXP arg0, SEXP arg1)
 		// Start the program
 		reset_global_variables();
 		printdebug("Function 'mosek' was called");
-		ret_val.initVEC(2);
+
+		// Make room for: response, sol, dinfo, iinfo
+		ret_val.initVEC(4);
 
 		// Validate input arguments
 		if (!isNamedVector(arg0)) {
@@ -101,9 +103,9 @@ SEXP mosek(SEXP arg0, SEXP arg1)
 		// Solve the problem
 		msk_solve(ret_val, task, probin.options);
 
-		// Print warning summary
-		if (mosek_interface_warnings > 0) {
-			printoutput("The R-to-MOSEK interface completed with " + tostring(mosek_interface_warnings) + " warning(s)\n\n", typeWARNING);
+		// Extract extra information items
+		if (probin.options.getinfo) {
+			msk_getoptimizationinfo(ret_val, task);
 		}
 
 	} catch (msk_exception const& e) {
@@ -186,7 +188,9 @@ SEXP mosek_read(SEXP arg0, SEXP arg1)
 		// Start the program
 		reset_global_variables();
 		printdebug("Function 'mosek_read' was called");
-		ret_val.initVEC(2);
+
+		// Make room for: response, prob, dinfo, iinfo
+		ret_val.initVEC(4);
 
 		// Validate input arguments
 		if (!Rf_isString(arg0)) {
@@ -223,6 +227,10 @@ SEXP mosek_read(SEXP arg0, SEXP arg1)
 			// Read the problem from MOSEK
 			probin.MOSEK_read(task);
 
+			// Extract extra information items
+			if (probin.options.getinfo) {
+				msk_getoptimizationinfo(ret_val, task);
+			}
 		}
 
 		// Read the problem sco-file if specified
@@ -234,11 +242,6 @@ SEXP mosek_read(SEXP arg0, SEXP arg1)
 		SEXP_NamedVector prob_val;
 		probin.R_write(prob_val);
 		ret_val.pushback("prob", prob_val);
-
-		// Print warning summary
-		if (mosek_interface_warnings > 0) {
-			printoutput("The R-to-MOSEK interface completed with " + tostring(mosek_interface_warnings) + " warning(s)\n", typeWARNING);
-		}
 
 	} catch (msk_exception const& e) {
 		terminate_unsuccessfully(ret_val, e);
@@ -272,7 +275,9 @@ SEXP mosek_write(SEXP arg0, SEXP arg1, SEXP arg2)
 		// Start the program
 		reset_global_variables();
 		printdebug("Function 'mosek_write' was called");
-		ret_val.initVEC(1);
+
+		// Make room for: response, dinfo, iinfo
+		ret_val.initVEC(3);
 
 		// Validate input arguments
 		if (!isNamedVector(arg0)) {
@@ -321,9 +326,9 @@ SEXP mosek_write(SEXP arg0, SEXP arg1, SEXP arg2)
 		// Write the loaded MOSEK problem to a file
 		msk_saveproblemfile(task, filepath, probin.options);
 
-		// Print warning summary
-		if (mosek_interface_warnings > 0) {
-			printoutput("The R-to-MOSEK interface completed with " + tostring(mosek_interface_warnings) + " warning(s)\n", typeWARNING);
+		// Extract extra information items
+		if (probin.options.getinfo) {
+			msk_getoptimizationinfo(ret_val, task);
 		}
 
 	} catch (msk_exception const& e) {

@@ -22,7 +22,8 @@ opts 				\tab LIST		\tab (OPTIONAL)		\cr
 ..$verbose 			\tab NUMERIC 		\tab (OPTIONAL)		\cr
 ..$usesol			\tab BOOLEAN		\tab (OPTIONAL)		\cr
 ..$useparam 			\tab BOOLEAN		\tab (OPTIONAL)		\cr
-..$scofile 			\tab STRING (filepath)	\tab (MANDATORY IN SCOPT)		\cr
+..$getinfo                      \tab BOOLEAN            \tab (OPTIONAL)         \cr
+..$scofile 			\tab STRING (filepath)	\tab (MANDATORY IN SCOPT)\cr
 }}
 }
 \details{
@@ -41,6 +42,7 @@ The option \code{scofile} is used in separable convex optimization to specify th
   .$verbose 		\tab Output logging verbosity \cr
   .$usesol		\tab Whether to write an initial solution \cr
   .$useparam		\tab Whether to write all parameter settings \cr
+  .$getinfo             \tab Whether to extract MOSEK information items \cr
   .$scofile		\tab Destination of operators from scopt \cr
 }
 }
@@ -51,15 +53,22 @@ r				\tab LIST		\tab 			\cr
 ..$response			\tab LIST		\tab 			\cr
 ....$code			\tab NUMERIC		\tab 			\cr
 ....$msg			\tab STRING		\tab 			\cr
-}}
+..$iinfo/$dinfo                 \tab LIST               \tab *                  \cr
+....$<MSK_INFO>                 \tab NUMERIC            \tab *                  \cr
+}
+\tabular{l}{*Starred items must be requested using an option.\cr}
+}
 
 The result is a named list containing the response of the MOSEK Optimization Library when writing to the model file. A response code of zero is the signal of success.
 
+Setting option \code{getinfo} to \code{TRUE} extracts \code{iinfo} and \code{dinfo}.
 \tabular{lll}{
   r			\tab Result \cr
   .$response		\tab Response from the MOSEK Optimization Library \cr
   ..$code		\tab ID-code of response \cr
   ..$msg		\tab Human-readable message \cr
+  .$iinfo/$dinfo        \tab MOSEK information list \cr
+  ..$<MSK_INFO>         \tab Value of any <MSK_INFO> \cr
 }
 }
 \examples{

@@ -13,6 +13,8 @@
 
 ___RMSK_INNER_NS_START___
 
+using std::string;
+
 // ----------------------------------------
 // SCOPT methods - User-defined unary operators
 // ----------------------------------------
@@ -98,12 +100,18 @@ evalopr(MSKscopre opr,
       if ( fxj )
         fxj[0] = f*pow(xj+h,g);
 
-      if ( grdfxj )
-        grdfxj[0] = f*g*pow(xj+h,g-1.0);
+      if ( grdfxj ) {
+    	  if (g != 0.0)
+    		  grdfxj[0] = f*g*pow(xj+h,g-1.0);
+    	  else
+    		  grdfxj[0] = 0.0;
+      }
 
-       if ( hesfxj )
-       { 
-         hesfxj[0] = f*g*(g-1.0)*pow(xj+h,g-2.0);
+       if ( hesfxj ) {
+    	   if (g != 0.0 && g != 1.0)
+    		   hesfxj[0] = f*g*(g-1.0)*pow(xj+h,g-2.0);
+    	   else
+    		   hesfxj[0] = 0.0;
        } 
       break;
     default:
@@ -114,67 +122,211 @@ evalopr(MSKscopre opr,
   return ( MSK_RES_OK );
 } /* evalopr */
 
+bool hasEvalPointLowerThan(double lb, double ub, double x) {
+	return isinf(lb) || lb < x || (x == lb && lb == ub);
+}
 
-MSKbooleant validate_scopr(MSKscopre opr, int i, int j, double f, double g, double h,
-		problem_type &probin)
+bool hasEvalPointLargerThan(double lb, double ub, double x) {
+	return isinf(ub) || ub > x || (x == lb && lb == ub);
+}
+
+bool hasEvalPointEqualTo(double lb, double ub, double x) {
+	return hasEvalPointLowerThan(lb,ub,x) && hasEvalPointLargerThan(lb,ub,x);
+}
+
+bool validateConvexOpr(double coef, bool shouldBeConvex, const string &oprConvexRequirement, bool shouldBeConcave, const string &oprConcaveRequirement, const string &errprefix) {
+	if (coef != 0.0) {
+		if (coef > 0.0) {
+			if (shouldBeConcave) {
+				printinfo(errprefix + "Operator with convex domain added to " + oprConcaveRequirement + ".");
+				return false;
+			}
+
+		} else {
+			if (shouldBeConvex) {
+				printinfo(errprefix + "Operator with concave domain added to " + oprConvexRequirement + ".");
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+bool validateConcaveOpr(double coef, bool shouldBeConvex, const string &oprConvexRequirement, bool shouldBeConcave, const string &oprConcaveRequirement, const string &errprefix) {
+	return validateConvexOpr(-coef, shouldBeConvex, oprConvexRequirement, shouldBeConcave, oprConcaveRequirement, errprefix);
+}
+
+void validate_scopr(MSKscopre opr, int i, int j, double f, double g, double h,
+		problem_type &probin, string oprname)
 {
+	const string errprefix = "In operator '" + oprname + "': ";
 
-	// Check i and j
+	//
+	// Check indexes: i and j
+	//
 	if (! (0 <= i && i <= probin.numcon) )
-		throw msk_exception("Constraint index was out of bounds");
+		throw msk_exception(errprefix + "Constraint index was out of bounds");
 
 	if (! (1 <= j && j <= probin.numvar) )
-		throw msk_exception("Variable index was out of bounds");
+		throw msk_exception(errprefix + "Variable index was out of bounds");
 
-	// Check coefficients
-	switch ( opr )
-	{
-	case MSK_OPR_ENT:
-		if (g != 0.0 || h != 0.0)
-			throw msk_exception("Coefficients 'h' and 'g' should be zero or have an empty definition in operator of type 'ENT'");
-		break;
+	//
+	// Check coefficients: f, g and h
+	//
+	if (f == 0.0) {
+		throw msk_exception(errprefix + "Coefficient 'f' is zero. Operator is redundant.");
+	}
 
-	case MSK_OPR_EXP:
-	case MSK_OPR_LOG:
-	case MSK_OPR_POW:
-		break;
+	switch ( opr ) {
+		case MSK_OPR_ENT:
+			if (g != 0.0 || h != 0.0)
+				throw msk_exception(errprefix + "Coefficients 'h' and 'g' should be zero or have an empty definition in operator of type 'ENT'");
+			break;
 
+		case MSK_OPR_EXP:
+			if (g == 0.0)
+				throw msk_exception(errprefix + "Coefficient 'g' is zero. Operator is constant.");
+			break;
+
+		case MSK_OPR_LOG:
+			if (g == 0.0)
+				throw msk_exception(errprefix + "Coefficient 'g' is zero. Operator is constant.");
+			break;
+
+		case MSK_OPR_POW:
+			if (g == 0.0)
+				throw msk_exception(errprefix + "Coefficient 'g' is zero. Operator is constant.");
+			if (g == 1.0)
+				printwarning(errprefix + "Coefficient 'g' is one. Operator is linear.");
+			break;
 	default:
 		throw msk_exception("Internal error in validate_scopr (rmsk_utils_scopt.cc): Operator with MSKscopre = " + tostring(opr) + " not recognized!");
 	}
 
+
 	//
-	// TODO: Check variable bounds (warn if not safe)
+	// Check variable bounds (print warnings if not safe)
 	//
-//	double blx = NUMERIC_ELT(probin.blx, j - 1);
-//	double bux = NUMERIC_ELT(probin.bux, j - 1);
-//	MSKboundkeye bkx; set_boundkey(blx, bux, &bkx);
-//	OR ALTERNATIVELY
-//	errcatch( MSK_getbound(task, MSK_ACC_VAR, j, &bkx, &blx, &bux) );
+	bool integerG = ( g == static_cast<double>(static_cast<long long int>(g)) );
+	bool evenG = !(static_cast<long long int>(g) & 1); // bitwise and operator
 
+	double blx = RNUMERICMATRIX_ELT(probin.bx, 0, j - 1);
+	double bux = RNUMERICMATRIX_ELT(probin.bx, 1, j - 1);
+	double critical;
 
-	if (i == 0) {
-		//
-		// Check term-wise convexity in objective (warn if not safe)
-		//
+	switch ( opr ) {
+		case MSK_OPR_ENT:
+			critical = 0.0;
+			if (hasEvalPointLowerThan(blx, bux, critical))
+				printwarning(errprefix + "log(x) for negative/zero x may be evaluated. Safe variable lower bound (blx) is " + tostring(critical) + " with a strictly larger upper bound (bux).");
+			break;
 
-//		MSKobjsensee sense = probin.sense;
-//		OR ALTERNATIVELY
-//		errcatch( MSK_getobjsense(task, &sense) );
+		case MSK_OPR_EXP:
+			break;
 
-	} else {
-		//
-		// Check term-wise convexity in constraint (warn if not safe)
-		//
-//		double blc = NUMERIC_ELT(probin.blc, i - 1);
-//		double buc = NUMERIC_ELT(probin.buc, i - 1);
-//		MSKboundkeye bkc; set_boundkey(blc, buc, &bkc);
-//		OR ALTERNATIVELY
-//		errcatch( MSK_getbound(task, MSK_ACC_CON, i, &bkc, &blc, &buc) );
+		case MSK_OPR_LOG:
+			critical = 0.0-h/g;
+			if (g > 0.0) {
+				if (hasEvalPointLowerThan(blx, bux, critical))
+					printwarning(errprefix + "log(x) for negative/zero x may be evaluated. Safe variable lower bound (blx) is " + tostring(critical) + " with a strictly larger upper bound (bux).");
+			}
+			if (g < 0.0) {
+				if (hasEvalPointLargerThan(blx, bux, critical))
+					printwarning(errprefix + "log(x) for negative/zero x may be evaluated. Safe variable upper bound (bux) is " + tostring(critical) + " with a strictly smaller lower bound (blx).");
+			}
+			break;
 
+		case MSK_OPR_POW:
+			critical = 0.0-h;
+			if (integerG && g < 0.0) {
+				if (hasEvalPointEqualTo(blx, bux, critical))
+					printwarning(errprefix + "0^g for g='" + tostring(g) + "' may be evaluated. Safe variable bound excludes point '" + tostring(critical) + "' from interior.");
+			}
+			if (!integerG) {
+				if (hasEvalPointLowerThan(blx, bux, critical))
+					printwarning(errprefix + "x^g for negative/zero x and g='" + tostring(g) + "' may be evaluated. Safe variable lower bound (blx) is " + tostring(critical) + " with a strictly larger upper bound (bux).");
+			}
+			break;
+	default:
+		throw msk_exception("Internal error in validate_scopr (rmsk_utils_scopt.cc): Operator with MSKscopre = " + tostring(opr) + " not recognized!");
 	}
 
-	return true;
+
+	//
+	// Check for disciplined convexity (print info if not disciplined)
+	//
+	string oprConvexRequirement = "INTERNAL ERROR";
+	string oprConcaveRequirement = "INTERNAL ERROR";
+	bool shouldBeConvex = false;
+	bool shouldBeConcave = false;
+	bool isDisciplined = true;
+
+	// Analyze operator location
+	if (i == 0) {
+		// Objective
+		MSKobjsensee msksense = probin.sense;
+		string sense = get_objective(msksense);
+		if (msksense == MSK_OBJECTIVE_SENSE_MINIMIZE) {
+			shouldBeConvex = true;
+			oprConvexRequirement = "objective function with sense='" + sense + "'";
+		}
+		if (msksense == MSK_OBJECTIVE_SENSE_MAXIMIZE) {
+			shouldBeConcave = true;
+			oprConcaveRequirement = "objective function with sense='" + sense + "'";
+		}
+	} else {
+		// Constraints
+		double blc = RNUMERICMATRIX_ELT(probin.bc, 0, i - 1);
+		double buc = RNUMERICMATRIX_ELT(probin.bc, 1, i - 1);
+		if (!isinf(buc)) {
+			shouldBeConvex = true;
+			oprConvexRequirement = "constraint with finite upper bound";
+		}
+		if (!isinf(blc)) {
+			shouldBeConcave = true;
+			oprConcaveRequirement = "constraint with finite lower bound";
+		}
+	}
+
+	// Analyze operator
+	switch ( opr ) {
+		case MSK_OPR_ENT:
+		case MSK_OPR_EXP:
+			isDisciplined &= validateConvexOpr(f, shouldBeConvex, oprConvexRequirement, shouldBeConcave, oprConcaveRequirement, errprefix);
+			break;
+
+		case MSK_OPR_LOG:
+			isDisciplined &= validateConcaveOpr(f, shouldBeConvex, oprConvexRequirement, shouldBeConcave, oprConcaveRequirement, errprefix);
+			break;
+
+		case MSK_OPR_POW:
+			// Only non-linear operators should be validated
+			if (g != 1.0) {
+				if (integerG) {
+					if (evenG)
+						isDisciplined &= validateConvexOpr(f, shouldBeConvex, oprConvexRequirement, shouldBeConcave, oprConcaveRequirement, errprefix);
+
+					else {
+						if (hasEvalPointLargerThan(blx, bux, -h))
+							isDisciplined &= validateConvexOpr(f, shouldBeConvex, oprConvexRequirement, shouldBeConcave, oprConcaveRequirement, errprefix);
+
+						if (hasEvalPointLowerThan(blx, bux, -h))
+							isDisciplined &= validateConcaveOpr(f, shouldBeConvex, oprConvexRequirement, shouldBeConcave, oprConcaveRequirement, errprefix);
+					}
+				} else {
+					if (0.0 < g && g < 1.0)
+						isDisciplined &= validateConcaveOpr(f, shouldBeConvex, oprConvexRequirement, shouldBeConcave, oprConcaveRequirement, errprefix);
+					else // (g < 0.0 || 1.0 < g)
+						isDisciplined &= validateConvexOpr(f, shouldBeConvex, oprConvexRequirement, shouldBeConcave, oprConcaveRequirement, errprefix);
+				}
+			}
+			break;
+	default:
+		throw msk_exception("Internal error in validate_scopr (rmsk_utils_scopt.cc): Operator with MSKscopre = " + tostring(opr) + " not recognized!");
+	}
+
+	if (!isDisciplined)
+		printwarning("Problem is not disciplined convex.");
 
 } /* validate_scopr */
 

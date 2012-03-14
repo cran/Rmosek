@@ -390,14 +390,7 @@ void scoptOPR_type::FILE_write(string &filepath, problem_type &probin)
 		g = 0.0; 	list_obtain_Scalar(&g, gvalue, "scopt$opro[4," + tostring(idx+1) + "]' specifying operator element '" + ITEMS.OPRO.R_ARGS.g, !MSKscopr_using_coef[mskoprtype][1]);
 		h = 0.0; 	list_obtain_Scalar(&h, hvalue, "scopt$opro[5," + tostring(idx+1) + "]' specifying operator element '" + ITEMS.OPRO.R_ARGS.h, !MSKscopr_using_coef[mskoprtype][2]);
 
-		try {
-			if (!validate_scopr(mskoprtype, 0, j, f, g, h, probin))
-				throw msk_exception("Unspecified error");
-		} catch (msk_exception const& e) {
-			msk_response eresp = e.getresponse();
-			eresp.msg = ("In scopt operator 'scopt$opro[," + tostring(idx+1) + "]': ").append(eresp.msg);
-			throw msk_exception(eresp);
-		}
+		validate_scopr(mskoprtype, 0, j, f, g, h, probin, "scopt$opro[," + tostring(idx+1) + "]");
 
 		fprintf(file,"%-8d %-8d %-24.16e %-24.16e %-24.16e\n",
 				mskoprtype,
@@ -434,14 +427,10 @@ void scoptOPR_type::FILE_write(string &filepath, problem_type &probin)
 		g = 0.0; 	list_obtain_Scalar(&g, gvalue, "scopt$oprc[5," + tostring(idx+1) + "]' specifying operator element '" + ITEMS.OPRC.R_ARGS.g, !MSKscopr_using_coef[mskoprtype][1]);
 		h = 0.0; 	list_obtain_Scalar(&h, hvalue, "scopt$oprc[6," + tostring(idx+1) + "]' specifying operator element '" + ITEMS.OPRC.R_ARGS.h, !MSKscopr_using_coef[mskoprtype][2]);
 
-		try {
-			if (!validate_scopr(mskoprtype, i, j, f, g, h, probin))
-				throw msk_exception("Unspecified error");
-		} catch (msk_exception const& e) {
-			msk_response eresp = e.getresponse();
-			eresp.msg = ("In scopt operator 'scopt$oprc[," + tostring(idx+1) + "]': ").append(eresp.msg);
-			throw msk_exception(eresp);
-		}
+		if (i == 0)
+			throw msk_exception("Constraint index at 'scopt$oprc[2," + tostring(idx+1) + "]' was out of bounds." );
+
+		validate_scopr(mskoprtype, i, j, f, g, h, probin, "scopt$oprc[," + tostring(idx+1) + "]");
 
 		fprintf(file,"%-8d %-8d %-8d %-24.16e %-24.16e %-24.16e\n",
 				mskoprtype,
@@ -561,14 +550,7 @@ void scoptOPR_type::init_nlh(problem_type &probin) {
 			g = 0.0; 	list_obtain_Scalar(&g, gvalue, "scopt$opro[4," + tostring(idx+1) + "]' specifying operator element '" + ITEMS.OPRO.R_ARGS.g, !MSKscopr_using_coef[mskoprtype][1]);
 			h = 0.0; 	list_obtain_Scalar(&h, hvalue, "scopt$opro[5," + tostring(idx+1) + "]' specifying operator element '" + ITEMS.OPRO.R_ARGS.h, !MSKscopr_using_coef[mskoprtype][2]);
 
-			try {
-				if (!validate_scopr(mskoprtype, 0, j, f, g, h, probin))
-					throw msk_exception("Unspecified error");
-			} catch (msk_exception const& e) {
-				msk_response eresp = e.getresponse();
-				eresp.msg = ("In scopt operator 'scopt$opro[," + tostring(idx+1) + "]': ").append(eresp.msg);
-				throw msk_exception(eresp);
-			}
+			validate_scopr(mskoprtype, 0, j, f, g, h, probin, "scopt$opro[," + tostring(idx+1) + "]");
 
 			nlh->opro[idx] = mskoprtype;
 			nlh->oprjo[idx] = j - 1;        // MOSEK counts from 0
@@ -606,14 +588,7 @@ void scoptOPR_type::init_nlh(problem_type &probin) {
 			if (i == 0)
 				throw msk_exception("Constraint index at 'scopt$oprc[2," + tostring(idx+1) + "]' was out of bounds." );
 
-			try {
-				if (!validate_scopr(mskoprtype, i, j, f, g, h, probin))
-					throw msk_exception("Unspecified error");
-			} catch (msk_exception const& e) {
-				msk_response eresp = e.getresponse();
-				eresp.msg = ("In scopt operator 'scopt$oprc[," + tostring(idx+1) + "]': ").append(eresp.msg);
-				throw msk_exception(eresp);
-			}
+			validate_scopr(mskoprtype, i, j, f, g, h, probin, "scopt$oprc[," + tostring(idx+1) + "]");
 
 			nlh->oprc[idx] = mskoprtype;
 			nlh->opric[idx] = i - 1;        // MOSEK counts from 0

@@ -20,6 +20,15 @@ ___RMSK_INNER_NS_START___
 // MOSEK-UTILS
 // ------------------------------
 
+typedef enum MSK_sk_solitem_enum {
+	MSK_SK_SOL_ITEM_BEGIN=0,
+	MSK_SK_SOL_ITEM_END=3,
+
+	MSK_SK_SOL_ITEM_SKC=0,
+	MSK_SK_SOL_ITEM_SKX=1,
+	MSK_SK_SOL_ITEM_SKN=2
+} MSK_sk_soliteme;
+
 // Convert objective sense to and from MOSEK and R
 std::string get_objective(MSKobjsensee sense);
 MSKobjsensee get_mskobjective(std::string sense);
@@ -40,8 +49,11 @@ void get_dou_parameters(SEXP_NamedVector &paramvec, MSKtask_t task);
 void get_str_parameters(SEXP_NamedVector &paramvec, MSKtask_t task);
 
 // Get and set solutions in task
-void msk_getsolution(SEXP_Handle &sol, MSKtask_t task);
-void append_initsol(MSKtask_t task, SEXP_LIST initsol, MSKintt NUMCON, MSKintt NUMVAR);
+void msk_getsolution(SEXP_Handle &sol, MSKtask_t task, options_type &options);
+void append_initsol(MSKtask_t task, SEXP_LIST initsol, MSKintt NUMCON, MSKintt NUMVAR, MSKintt NUMCONES);
+
+// Get optimization info
+void msk_getoptimizationinfo(SEXP_NamedVector &ret_val, Task_handle &task);
 
 // Initialise the task and load problem from arguments
 void msk_loadproblem(Task_handle &task, problem_type &probin);

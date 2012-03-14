@@ -175,8 +175,7 @@ void pkgMatrixCOO_type::R_read(SEXP val, string name) {
 		M_as_cholmod_triplet(matrix, val, (Rboolean)FALSE);
 	}
 	else {
-		// TODO: No function M_cholmod_dense_to_triplet available in package Matrix
-		throw msk_exception("Internal error in pkgMatrixCOO_type::R_read, no dense to triplet conversion");
+		throw msk_exception("Internal error in pkgMatrixCOO_type::R_read: Call to Matrix_isclass_triplet returned false.");
 	}
 
 	// Verify sparse matrix
@@ -278,29 +277,7 @@ void pkgMatrixCSC_type::R_read(SEXP val, string name) {
 		M_as_cholmod_sparse(matrix, val, (Rboolean)FALSE, (Rboolean)FALSE);
 	}
 	else {
-		cholmod_allocated = true;
-
-		if (Matrix_isclass_triplet(val)) {
-			printwarning("Converting triplet to sparse matrix in Matrix Package");
-
-			cholmod_triplet temp;
-			M_as_cholmod_triplet(&temp, val, (Rboolean)FALSE);
-
-			matrix = M_cholmod_triplet_to_sparse(&temp, temp.nzmax, &chol);
-			initialized = true;
-		}
-		else if (Matrix_isclass_dense(val)) {
-			printwarning("Converting dense to sparse matrix in Matrix Package");
-
-			cholmod_dense temp;
-			M_as_cholmod_dense(&temp, val);
-
-			matrix = M_cholmod_dense_to_sparse(&temp, temp.nzmax, &chol);
-			initialized = true;
-		}
-		else {
-			throw msk_exception("Variable '" + name + "' should either be a list, or a sparse/triplet/dense matrix from the Matrix Package (preferably sparse)");
-		}
+		throw msk_exception("Internal error in pkgMatrixCSC_type::R_read: Call to Matrix_isclass_Csparse returned false.");
 	}
 
 	// Verify sparse matrix

@@ -23,9 +23,11 @@ const options_type::R_ARGS_type options_type::R_ARGS;
 options_type::options_type() :
 	initialized(false),
 
+	verbose(10),
 	useparam(true),
 	usesol(true),
-	verbose(10),
+	getinfo(false),
+	soldetail(0),
 	writebefore(""),
 	writeafter(""),
 	matrixformat(pkgMatrixCOO),
@@ -49,6 +51,8 @@ void options_type::R_read(SEXP_LIST object) {
 	// Read simple input arguments
 	list_seek_Boolean(&useparam, arglist, R_ARGS.useparam,  true);
 	list_seek_Boolean(&usesol, arglist, R_ARGS.usesol, true);
+	list_seek_Boolean(&getinfo, arglist, R_ARGS.getinfo, true);
+	list_seek_Scalar(&soldetail, arglist, R_ARGS.soldetail, true);
 	list_seek_String(&writebefore, arglist, R_ARGS.writebefore, true);
 	list_seek_String(&writeafter, arglist, R_ARGS.writeafter, true);
 	list_seek_String(&scofile, arglist, R_ARGS.scofile, true);
@@ -397,7 +401,7 @@ void problem_type::MOSEK_read(Task_handle &task) {
 	// Initial solution
 	if (options.usesol) {
 		printdebug("problem_type::MOSEK_read - Initial solution");
-		msk_getsolution(initsol, task);
+		msk_getsolution(initsol, task, options);
 	}
 
 	initialized = true;
@@ -415,7 +419,7 @@ void problem_type::MOSEK_write(Task_handle &task) {
 
 	/* Set initial solution */
 	if (options.usesol) {
-		append_initsol(task, initsol, numcon, numvar);
+		append_initsol(task, initsol, numcon, numvar, numcones);
 	}
 
 	/* Set parameters */
