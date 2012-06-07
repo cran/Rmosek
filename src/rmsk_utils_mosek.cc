@@ -30,8 +30,6 @@ string get_objective(MSKobjsensee sense)
 			return "maximize";
 		case MSK_OBJECTIVE_SENSE_MINIMIZE:
 			return "minimize";
-		case MSK_OBJECTIVE_SENSE_UNDEFINED:
-			return "UNDEFINED";
 		default:
 			throw msk_exception("A problem sense was not supported");
 	}
@@ -329,29 +327,29 @@ void append_initsol(MSKtask_t task, SEXP_LIST initsol, MSKintt NUMCON, MSKintt N
 
 void set_boundkey(double bl, double bu, MSKboundkeye *bk)
 {
-	if (isnan(bl) || isnan(bu))
+	if (ISNAN(bl) || ISNAN(bu))
 		throw msk_exception("NAN values not allowed in bounds");
 
-	if (!isinf(bl) && !isinf(bu) && bl > bu)
+	if (R_finite(bl) && R_finite(bu) && bl > bu)
 		throw msk_exception("The upper bound should be larger than the lower bound");
 
-	if (isinf(bl) && ispos(bl))
+	if (!R_finite(bl) && ISPOS(bl))
 		throw msk_exception("+INF values not allowed as lower bound");
 
-	if (isinf(bu) && !ispos(bu))
+	if (!R_finite(bu) && !ISPOS(bu))
 		throw msk_exception("-INF values not allowed as upper bound");
 
 	// Return the bound key
-	if (isinf(bl))
+	if (!R_finite(bl))
 	{
-		if (isinf(bu))
+		if (!R_finite(bu))
 			*bk = MSK_BK_FR;
 		else
 			*bk = MSK_BK_UP;
 	}
 	else
 	{
-		if (isinf(bu))
+		if (!R_finite(bu))
 			*bk = MSK_BK_LO;
 		else
 		{
@@ -375,14 +373,14 @@ void get_boundvalues(MSKtask_t task, double *lower, double* upper, MSKaccmodee b
 	for (MSKintt i=0; i<numbounds; i++) {
 		switch (bk[i]) {
 			case MSK_BK_FR:
-				lower[i] = -INFINITY;
-				upper[i] = INFINITY;
+				lower[i] = R_NegInf;
+				upper[i] = R_PosInf;
 				break;
 			case MSK_BK_LO:
-				upper[i] = INFINITY;
+				upper[i] = R_PosInf;
 				break;
 			case MSK_BK_UP:
-				lower[i] = -INFINITY;
+				lower[i] = R_NegInf;
 				break;
 			default:
 				break;
@@ -810,10 +808,9 @@ void msk_getoptimizationinfo(SEXP_NamedVector &ret_val, Task_handle &task)
 	{
 		SEXP_NamedVector vecinfo;
 		vecinfo.initVEC((MSK_IINF_END - MSK_IINF_BEGIN) + (MSK_LIINF_END - MSK_LIINF_BEGIN));
-		MSKintt msk32value;
-		MSKint64t msk64value;
 
 		// 32 bit integers
+		MSKintt msk32value;
 		for (int v=MSK_IINF_BEGIN; v<MSK_IINF_END; ++v)
 		{
 			MSKiinfiteme infotype = static_cast<MSKiinfiteme>(v);
@@ -827,6 +824,7 @@ void msk_getoptimizationinfo(SEXP_NamedVector &ret_val, Task_handle &task)
 		}
 
 		// 64 bit integers
+		MSKint64t msk64value;
 		for (int v=MSK_LIINF_BEGIN; v<MSK_LIINF_END; ++v)
 		{
 			MSKliinfiteme infotype = static_cast<MSKliinfiteme>(v);
@@ -879,12 +877,12 @@ void msk_loadproblem(Task_handle &task, problem_type &probin)
 	MSKintt NUMINTVAR = numeric_cast<MSKintt>(Rf_length(probin.intsub));
 
 	/* Bounds on constraints. */
-	MSKboundkeye bkc[NUMCON];
+	auto_array<MSKboundkeye> bkc(new MSKboundkeye[NUMCON]);
 	for (int i=0; i<NUMCON; i++)
 		set_boundkey(RNUMERICMATRIX_ELT(probin.bc,0,i), RNUMERICMATRIX_ELT(probin.bc,1,i), &bkc[i]);
 
 	/* Bounds on variables. */
-	MSKboundkeye bkx[NUMVAR];
+	auto_array<MSKboundkeye> bkx(new MSKboundkeye[NUMVAR]);
 	for (int i=0; i<NUMVAR; i++)
 		set_boundkey(RNUMERICMATRIX_ELT(probin.bx,0,i), RNUMERICMATRIX_ELT(probin.bx,1,i), &bkx[i]);
 

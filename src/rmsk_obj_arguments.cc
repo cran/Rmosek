@@ -18,8 +18,6 @@ using std::exception;
 // Class options_type
 // ------------------------------
 
-const options_type::R_ARGS_type options_type::R_ARGS;
-
 options_type::options_type() :
 	initialized(false),
 
@@ -46,7 +44,7 @@ void options_type::R_read(SEXP_LIST object) {
 	// Read verbose and update message system
 	list_seek_Scalar(&verbose, arglist, R_ARGS.verbose, true);
 	mosek_interface_verbose = verbose;
-	printpendingmsg();
+	printpendingmsg("");
 
 	// Read simple input arguments
 	list_seek_Boolean(&useparam, arglist, R_ARGS.useparam,  true);
@@ -73,8 +71,6 @@ void options_type::R_read(SEXP_LIST object) {
 // Class problem_type
 // ------------------------------
 
-const problem_type::R_ARGS_type problem_type::R_ARGS;
-
 // Default values of optional arguments
 problem_type::problem_type() :
 	initialized(false),
@@ -85,7 +81,7 @@ problem_type::problem_type() :
 	numintvar	(0),
 	numcones	(0),
 	numscoprs	(0),
-	sense	(MSK_OBJECTIVE_SENSE_UNDEFINED),
+	sense	(MSK_OBJECTIVE_SENSE_MINIMIZE),
 	c0		(0),
 	options	(options_type())
 {}

@@ -30,7 +30,7 @@ void printwarning(std::string str);
 void printinfo(std::string str);
 void printdebug(std::string str);
 void printdebugdata(std::string str);
-void printpendingmsg();
+void printpendingmsg(std::string header);
 void delete_all_pendingmsg();
 
 
@@ -64,8 +64,8 @@ struct msk_exception : public std::runtime_error {
 // BASIC TYPE MANIPULATION
 // ------------------------------
 void strtoupper(std::string& str);
-bool ispos(double x);
 int scalar2int(double scalar);
+bool ISPOS(double x);
 
 template <class T>
 std::string tostring(T val)

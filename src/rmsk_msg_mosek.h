@@ -1,9 +1,10 @@
 #ifndef RMSK_MSG_MOSEK_H_
 #define RMSK_MSG_MOSEK_H_
 
-#include "mosek.h"
 #include "rmsk_msg_base.h"
 #include "rmsk_namespace.h"
+
+#include "compatibility/cpp98_mosek.h"
 
 #include <string>
 

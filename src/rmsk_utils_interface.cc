@@ -7,6 +7,8 @@
 #include "rmsk_obj_matrices.h"
 #include "rmsk_obj_mosek.h"
 
+#include "rmsk_globalvars.h"
+
 #include <string>
 #include <exception>
 
@@ -20,23 +22,14 @@ using std::exception;
 // Cleaning and termination code
 // ------------------------------
 
-void reset_global_ressources() {
-	// The mosek environment 'global_env' should not be cleared, as we wish to
-	// reuse the license until mosek_clean() is called or .SO/.DLL is unloaded.
+void initiate_package() {
+	// Clean in case of Rf_error in previous run
+	if (!mosek_interface_termination_success) {
+		reset_global_ressources();
+	}
 
-	global_pkgMatrix_CSC.~pkgMatrixCSC_type();
-	global_pkgMatrix_COO.~pkgMatrixCOO_type();
-	global_task.~Task_handle();
-	delete_all_pendingmsg();
-}
-
-void reset_global_variables() {
-	// This should be done at the beginning of a new function call
-
-	mosek_interface_verbose  = NAN;   				// Declare messages as pending
-	mosek_interface_warnings = 0;
-	mosek_interface_signal_caught = false;
-	mosek_interface_termination_success = false;	// No success before we call 'terminate_successfully' or 'mosek_clean'
+	// Start the function call
+	reset_global_execution_flags();
 }
 
 void terminate_successfully(SEXP_NamedVector &ret_val) /* nothrow */ {
@@ -56,11 +49,10 @@ void terminate_successfully(SEXP_NamedVector &ret_val) /* nothrow */ {
 void terminate_unsuccessfully(SEXP_NamedVector &ret_val, const msk_exception &e) /* nothrow */ {
 	try {
 		// Force pending and future messages through
-		if (isnan(mosek_interface_verbose)) {
+		if (ISNAN(mosek_interface_verbose)) {
 			mosek_interface_verbose = typeALL;
-			printoutput("----- PENDING MESSAGES -----\n", typeERROR);
 		}
-		printpendingmsg();
+		printpendingmsg("----- PENDING MESSAGES -----\n");
 		printerror( e.what() );
 
 		msk_addresponse(ret_val, e.getresponse(), true);

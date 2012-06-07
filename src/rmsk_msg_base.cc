@@ -6,32 +6,30 @@
 #include <vector>
 #include <limits>
 
-
 ___RMSK_INNER_NS_START___
+#define force_messages_through 0	// Debugging parameter
+
 using std::vector;
 using std::string;
 using std::numeric_limits;
 
 
-// Global initialization
-double mosek_interface_verbose  = NAN;				// Declare messages as pending
-int    mosek_interface_warnings = 0;				// Start warning count from zero
-bool   mosek_interface_signal_caught = false;		// Indicate whether the CTRL+C interrupt has been registered
-bool   mosek_interface_termination_success = true;	// Indicate whether the interfaced terminated properly
-
-
 // ------------------------------
 // PRINTING SYSTEM
 // ------------------------------
-vector<string>      mosek_pendingmsg_str;
-vector<verbosetype> mosek_pendingmsg_type;
+extern vector<string>      mosek_pendingmsg_str;
+extern vector<verbosetype> mosek_pendingmsg_type;
 
 void printoutput(string str, verbosetype strtype) {
-	if (isnan(mosek_interface_verbose)) {
+
+#if force_messages_through == 0
+	if (ISNAN(mosek_interface_verbose)) {
 		mosek_pendingmsg_str.push_back(str);
 		mosek_pendingmsg_type.push_back(strtype);
 
-	} else if (mosek_interface_verbose >= strtype) {
+	} else if (mosek_interface_verbose >= strtype)
+#endif
+	{
 		if (typeERROR == strtype)
 			REprintf(str.c_str());
 		else
@@ -60,12 +58,20 @@ void printdebugdata(string str) {
 	printoutput(str, typeDEBUG);
 }
 
-void printpendingmsg() {
+void printpendingmsg(string header) {
 	if (mosek_pendingmsg_str.size() != mosek_pendingmsg_type.size()) {
 		delete_all_pendingmsg();
 		throw msk_exception("Error in handling of pending messages");
 	}
 
+	// Find verbose type which ensures that header is printed, if anything is printed at all
+	verbosetype header_type = typeALL;
+	for (vector<string>::size_type i=0; i<mosek_pendingmsg_str.size(); i++)
+		if (header_type > mosek_pendingmsg_type[i])
+			header_type = mosek_pendingmsg_type[i];
+
+	// Print header and message queue
+	printoutput(header, header_type);
 	for (vector<string>::size_type i=0; i<mosek_pendingmsg_str.size(); i++) {
 		printoutput(mosek_pendingmsg_str[i], mosek_pendingmsg_type[i]);
 	}
@@ -92,14 +98,14 @@ void strtoupper(string &str) {
 	}
 }
 
-/* This function returns the sign of doubles even when incomparable (isinf true). */
-bool ispos(double x) {
+/* This function returns the sign of doubles even when incomparable (ISINF is true). */
+bool ISPOS(double x) {
 	return (copysign(1.0, x) > 0);
 }
 
 /* This function converts from the normal double type to integers (supports infinity) */
 int scalar2int(double scalar) {
-	if (isinf(scalar))
+	if (!R_finite(scalar))
 		return numeric_limits<int>::max();
 
 	int retval = static_cast<int>(scalar);

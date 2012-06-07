@@ -35,12 +35,10 @@
 #define R_NO_REMAP
 #include "rmsk_namespace.h"
 #include "rmsk_msg_mosek.h"
+#include "rmsk_globalvars.h"
 #include "rmsk_utils_interface.h"
 #include "rmsk_utils_mosek.h"
 #include "rmsk_utils_sexp.h"
-
-#include "rmsk_obj_arguments.h"
-#include "rmsk_obj_mosek.h"
 
 #include <string>
 #include <exception>
@@ -67,17 +65,11 @@ SEXP mosek(SEXP arg0, SEXP arg1)
 	const string ARGNAMES[] = {"problem","options"};
 	const string ARGTYPES[] = {"list","list"};
 
-	// Clean in case of Rf_error in previous run
-	if (!mosek_interface_termination_success) {
-		reset_global_ressources();
-	}
-
 	// Create handled for returned data
 	SEXP_NamedVector ret_val;
 
 	try {
-		// Start the program
-		reset_global_variables();
+		initiate_package();
 		printdebug("Function 'mosek' was called");
 
 		// Make room for: response, sol, dinfo, iinfo
@@ -128,12 +120,11 @@ SEXP mosek_clean()
 	if (!mosek_interface_termination_success) {
 
 		// If an Rf_error happens before vebosity is set, output everything!
-		if isnan(mosek_interface_verbose) {
+		if (ISNAN(mosek_interface_verbose)) {
 			mosek_interface_verbose = typeALL;
-			printoutput("----- PENDING MESSAGES -----\n", typeERROR);
 
 			try {
-				printpendingmsg();
+				printpendingmsg("----- PENDING MESSAGES -----\n");
 			} catch (exception const& e) { /* Just continue.. */ }
 		}
 
@@ -143,14 +134,13 @@ SEXP mosek_clean()
 	} else {
 
 		// The mosek_clean function use verbose=typeINFO by default (should we read options?)
-		reset_global_variables();
+		reset_global_execution_flags();
 		mosek_interface_verbose = typeINFO;
 
 	}
 
 	// Clean global resources and release the MOSEK environment
-	reset_global_ressources();
-	global_env.~Env_handle();
+	reset_global_ressources(true);
 	mosek_interface_termination_success = true;
 
 	return R_NilValue;
@@ -176,17 +166,11 @@ SEXP mosek_read(SEXP arg0, SEXP arg1)
 	const string ARGNAMES[] = {"filepath","options"};
 	const string ARGTYPES[] = {"string","list"};
 
-	// Clean in case of Rf_error in previous run
-	if (!mosek_interface_termination_success) {
-		reset_global_ressources();
-	}
-
 	// Create handled for returned data
 	SEXP_NamedVector ret_val;
 
 	try {
-		// Start the program
-		reset_global_variables();
+		initiate_package();
 		printdebug("Function 'mosek_read' was called");
 
 		// Make room for: response, prob, dinfo, iinfo
@@ -263,17 +247,11 @@ SEXP mosek_write(SEXP arg0, SEXP arg1, SEXP arg2)
 	const string ARGNAMES[] = {"problem","filepath","options"};
 	const string ARGTYPES[] = {"named list","string","named list"};
 
-	// Clean in case of Rf_error in previous run
-	if (!mosek_interface_termination_success) {
-		reset_global_ressources();
-	}
-
 	// Create handled for returned data
 	SEXP_NamedVector ret_val;
 
 	try {
-		// Start the program
-		reset_global_variables();
+		initiate_package();
 		printdebug("Function 'mosek_write' was called");
 
 		// Make room for: response, dinfo, iinfo

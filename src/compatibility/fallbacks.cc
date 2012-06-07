@@ -1,3 +1,5 @@
+#if pkgMatrixVersion_LESS_THAN_OR_EQUAL(1,0,0) // Based on revision 2717
+
 /*
  * Copied from Mutils.c (rev.2718) to support M_Matrix_check_class_etc
  */
@@ -106,3 +108,5 @@ bool Matrix_isclass_triplet(SEXP x) {
 bool Matrix_isclass_dense(SEXP x) {
 	return M_Matrix_check_class_etc(x, Matrix_valid_dense) >= 0;
 }
+
+#endif

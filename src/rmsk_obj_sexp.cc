@@ -207,9 +207,7 @@ void SEXP_Vector::pushback(SEXP item) {
 	else
 		SET_VECTOR_ELT(items, pos, item);
 
-	if (!static_size) {
-		SETLENGTH(items, pos+1);
-	}
+	SETLENGTH(items, pos+1);
 }
 
 void SEXP_Vector::pushback(char* item) {
@@ -236,17 +234,51 @@ void SEXP_Vector::pushback(std::string item) {
 }
 
 void SEXP_Vector::pushback(double item) {
-	if (itemstype != REALSXP && itemstype != VECSXP)
-		throw msk_exception("An internal SEXP_Vector experienced a pushback of the wrong type REALSXP!");
+	if (itemstype == VECSXP)
+		pushback(Rf_ScalarReal(item));
+	else {
 
-	pushback(Rf_ScalarReal(item));
+		if (itemstype != REALSXP && itemstype != VECSXP)
+			throw msk_exception("An internal SEXP_Vector experienced a pushback of the wrong type REALSXP!");
+
+		if (!initialized)
+			throw msk_exception("A SEXP_Vector was not initialized in pushback call");
+
+		if (static_size)
+			throw msk_exception("A static sized SEXP_Vector recieved a dynamic pushback call");
+
+		// SET_VECTOR_ELT and SETLENGTH needs type 'int'
+		R_len_t pos = numeric_cast<int>(size());
+		if (pos >= maxsize)
+			throw msk_exception("Internal SEXP_Vector did not have enough capacity");
+
+		REAL(items)[pos] = item;
+		SETLENGTH(items, pos+1);
+	}
 }
 
 void SEXP_Vector::pushback(int item) {
-	if (itemstype != INTSXP && itemstype != VECSXP)
-		throw msk_exception("An internal SEXP_Vector experienced a pushback of the wrong type INTSXP!");
+	if (itemstype == VECSXP)
+		pushback(Rf_ScalarInteger(item));
+	else {
 
-	pushback(Rf_ScalarInteger(item));
+		if (itemstype != INTSXP && itemstype != VECSXP)
+			throw msk_exception("An internal SEXP_Vector experienced a pushback of the wrong type INTSXP!");
+
+		if (!initialized)
+			throw msk_exception("A SEXP_Vector was not initialized in pushback call");
+
+		if (static_size)
+			throw msk_exception("A static sized SEXP_Vector recieved a dynamic pushback call");
+
+		// SET_VECTOR_ELT and SETLENGTH needs type 'int'
+		R_len_t pos = numeric_cast<int>(size());
+		if (pos >= maxsize)
+			throw msk_exception("Internal SEXP_Vector did not have enough capacity");
+
+		INTEGER(items)[pos] = item;
+		SETLENGTH(items, pos+1);
+	}
 }
 
 void SEXP_Vector::set(SEXP item, int pos) {

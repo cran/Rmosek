@@ -15,8 +15,6 @@ using std::auto_ptr;
 // Class conicSOC_type
 // ------------------------------
 
-const conicSOC_type::ITEMS_type::R_ARGS_type conicSOC_type::ITEMS_type::R_ARGS;
-
 void conicSOC_type::R_read(SEXP_LIST object) {
 	if (initialized) {
 		throw msk_exception("Internal error in conicSOC_type::R_read, a 'cones' matrix was already loaded");
@@ -127,7 +125,7 @@ void conicSOC_type::MOSEK_write(Task_handle &task) {
 
 		// Convert sub type and indexing (Minus one because MOSEK indexes counts from 0, not from 1 as R)
 		MSKintt numconesub = numeric_cast<MSKintt>(Rf_length(sub));
-		MSKidxt msksub[numconesub];
+		auto_array<MSKidxt> msksub(new MSKidxt[numconesub]);
 		for (MSKidxt i=0; i < numconesub; i++)
 			msksub[i] = INTEGER_ELT(sub,i) - 1;
 
@@ -144,10 +142,6 @@ void conicSOC_type::MOSEK_write(Task_handle &task) {
 // ------------------------------
 // Class scoptOPR_type
 // ------------------------------
-
-const scoptOPR_type::R_ARGS_type scoptOPR_type::R_ARGS;
-const scoptOPR_type::ITEMS_type::OPRO_type::R_ARGS_type scoptOPR_type::ITEMS_type::OPRO_type::R_ARGS;
-const scoptOPR_type::ITEMS_type::OPRC_type::R_ARGS_type scoptOPR_type::ITEMS_type::OPRC_type::R_ARGS;
 
 void scoptOPR_type::R_read(SEXP_LIST object) {
 	if (initialized) {

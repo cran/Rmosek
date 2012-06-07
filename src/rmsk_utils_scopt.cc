@@ -40,7 +40,7 @@ evalopr(MSKscopre opr,
   {
     case MSK_OPR_ENT:
 #if SCDEBUG && 1
-      printf("%s(%d): ENT (%lf > 0)\n",__FILE__,__LINE__,xj);
+      printf("%s(%d): ENT (%f > 0)\n",__FILE__,__LINE__,xj);
 #endif
       if ( xj<=0.0 )
       {
@@ -77,7 +77,7 @@ evalopr(MSKscopre opr,
     case MSK_OPR_LOG:
       rtemp = g*xj+h;
 #if SCDEBUG && 1
-      printf("%s(%d): LOG (%lf > 0)\n",__FILE__,__LINE__,rtemp);
+      printf("%s(%d): LOG (%f > 0)\n",__FILE__,__LINE__,rtemp);
 #endif
       if ( rtemp<=0.0 )
       {
@@ -123,11 +123,11 @@ evalopr(MSKscopre opr,
 } /* evalopr */
 
 bool hasEvalPointLowerThan(double lb, double ub, double x) {
-	return isinf(lb) || lb < x || (x == lb && lb == ub);
+	return !R_finite(lb) || lb < x || (x == lb && lb == ub);
 }
 
 bool hasEvalPointLargerThan(double lb, double ub, double x) {
-	return isinf(ub) || ub > x || (x == lb && lb == ub);
+	return !R_finite(ub) || ub > x || (x == lb && lb == ub);
 }
 
 bool hasEvalPointEqualTo(double lb, double ub, double x) {
@@ -207,8 +207,8 @@ void validate_scopr(MSKscopre opr, int i, int j, double f, double g, double h,
 	//
 	// Check variable bounds (print warnings if not safe)
 	//
-	bool integerG = ( g == static_cast<double>(static_cast<long long int>(g)) );
-	bool evenG = !(static_cast<long long int>(g) & 1); // bitwise and operator
+	bool integerG = ( g == static_cast<double>(static_cast<MSKint64t>(g)) );
+	bool evenG = !(static_cast<MSKint64t>(g) & 1); // bitwise and operator
 
 	double blx = RNUMERICMATRIX_ELT(probin.bx, 0, j - 1);
 	double bux = RNUMERICMATRIX_ELT(probin.bx, 1, j - 1);
@@ -278,11 +278,11 @@ void validate_scopr(MSKscopre opr, int i, int j, double f, double g, double h,
 		// Constraints
 		double blc = RNUMERICMATRIX_ELT(probin.bc, 0, i - 1);
 		double buc = RNUMERICMATRIX_ELT(probin.bc, 1, i - 1);
-		if (!isinf(buc)) {
+		if (R_finite(buc)) {
 			shouldBeConvex = true;
 			oprConvexRequirement = "constraint with finite upper bound";
 		}
-		if (!isinf(blc)) {
+		if (R_finite(blc)) {
 			shouldBeConcave = true;
 			oprConcaveRequirement = "constraint with finite lower bound";
 		}
@@ -332,8 +332,8 @@ void validate_scopr(MSKscopre opr, int i, int j, double f, double g, double h,
 
 
 MSKbooleant MSK_scsymnamtovalue (
-    MSKCONST char * name,
-    MSKscopre * value)
+   MSKCONST char  	  * name,
+            MSKscopre * value)
 {
   if ( strcmp(name, "MSK_OPR_ENT") == 0 ) { *value = MSK_OPR_ENT; } else
   if ( strcmp(name, "MSK_OPR_EXP") == 0 ) { *value = MSK_OPR_EXP; } else
@@ -455,11 +455,11 @@ static void scgrdconistruc(nlhand_t nlh,
 
 static MSKrescodee 
 schesstruc(nlhand_t nlh,
-                      int      yo,
-                      int      numycnz,
-                      int      *ycsub,
-                      int      *nz,
-                      int      *sub)
+                      int  yo,
+                      int  numycnz,
+             MSKCONST int  *ycsub,
+                      int  *nz,
+                      int  *sub)
 {
   int i,j,k,p,
       *zibuf;
@@ -536,20 +536,20 @@ schesstruc(nlhand_t nlh,
 } /* schestruc */
 
 MSKintt MSKAPI 
-SCstruc(void *nlhandle,
-        MSKintt   *numgrdobjnz,
-        MSKidxt   *grdobjsub,
-        MSKintt    i,
-        MSKintt   *convali,
-        MSKintt   *grdconinz,
-        MSKidxt   *grdconisub,
-        MSKintt    yo,
-        MSKintt    numycnz,
-        MSKidxt   *ycsub,
-        MSKlidxt   maxnumhesnz,
-        MSKlidxt  *numhesnz,
-        MSKidxt   *hessubi,
-        MSKidxt   *hessubj)
+SCstruc(MSKuserhandle_t    nlhandle,
+			MSKintt   	 * numgrdobjnz,
+			MSKidxt   	 * grdobjsub,
+			MSKidxt        i,
+			MSKbooleant  * convali,
+			MSKintt   	 * grdconinz,
+			MSKidxt   	 * grdconisub,
+			MSKintt    	   yo,
+			MSKintt    	   numycnz,
+   MSKCONST MSKidxt 	 * ycsub,
+			MSKintt   	   maxnumhesnz,
+			MSKintt  	 * numhesnz,
+			MSKidxt   	 * hessubi,
+			MSKidxt   	 * hessubj)
      /* Purpose: Provide information to MOSEK about the
         problem structure and sparsity.
      */
@@ -612,11 +612,11 @@ SCstruc(void *nlhandle,
 
 static MSKrescodee 
 scobjeval(nlhand_t nlh,
-                     double   *x,
-                     double   *objval,
-                     int      *grdnz,
-                     int      *grdsub,
-                     double   *grdval)
+ MSKCONST double   *x,
+		  double   *objval,
+		  int      *grdnz,
+		  int      *grdsub,
+		  double   *grdval)
      /* Purpose: Compute number objective value and the gradient.
       */
 {
@@ -693,12 +693,12 @@ scobjeval(nlhand_t nlh,
 
 static MSKrescodee
 scgrdconeval(nlhand_t nlh,
-                        int      i,
-                        double   *x,
-                        double   *objval,
-                        int      grdnz,
-                        int      *grdsub,
-                        double   *grdval)
+			 int      i,
+	MSKCONST double * x,
+			 double * objval,
+			 int      grdnz,
+	MSKCONST int    * grdsub,
+			 double * grdval)
 /* Purpose: Compute number value and the gradient of constraint i.
  */
 {
@@ -787,36 +787,34 @@ scgrdconeval(nlhand_t nlh,
 
 MSKintt MSKAPI 
 SCeval(MSKuserhandle_t nlhandle,
-       MSKrealt          *xx,
-       MSKrealt           yo,
-       MSKrealt          *yc,
-       MSKrealt          *objval,
-       MSKintt           *numgrdobjnz,
-       MSKidxt           *grdobjsub,
-       MSKrealt          *grdobjval,
-       MSKintt            numi,
-       MSKidxt           *subi,
-       MSKrealt          *conval,
-       MSKidxt           *grdconptrb,
-       MSKidxt           *grdconptre,
-       MSKidxt           *grdconsub,
-       MSKrealt          *grdconval,
-       MSKrealt          *grdlag,
-       MSKlintt           maxnumhesnz,
-       MSKlintt          *numhesnz,
-       MSKidxt           *hessubi,
-       MSKidxt           *hessubj,
-       MSKrealt          *hesval)
+   MSKCONST MSKrealt *xx,
+			MSKrealt  yo,
+   MSKCONST MSKrealt *yc,
+			MSKrealt *objval,
+			MSKintt  *numgrdobjnz,
+			MSKidxt  *grdobjsub,
+			MSKrealt *grdobjval,
+			MSKintt   numi,
+   MSKCONST MSKidxt  *subi,
+			MSKrealt *conval,
+   MSKCONST MSKidxt  *grdconptrb,
+   MSKCONST MSKidxt  *grdconptre,
+   MSKCONST MSKidxt  *grdconsub,
+			MSKrealt *grdconval,
+			MSKrealt *grdlag,
+			MSKlintt  maxnumhesnz,
+			MSKlintt *numhesnz,
+			MSKidxt  *hessubi,
+			MSKidxt  *hessubj,
+			MSKrealt *hesval)
 {
   double   fx,grdfx,hesfx;
   MSKrescodee r=MSK_RES_OK;
-  int      i,j,k,l,p,numvar,numcon,
+  int      i,j,k,l,p,numvar,
            *zibuf;
   nlhand_t self;
 
   self    = (nlhand_t) nlhandle;
-
-  numcon = self->numcon; 
   numvar = self->numvar;
 
   r      = scobjeval(self,xx,objval,numgrdobjnz,grdobjsub,grdobjval);
@@ -943,14 +941,14 @@ SCeval(MSKuserhandle_t nlhandle,
  
     fprintf (out,"-[ EVAL ]-------------------------------------------------\n");
     fprintf (out,"xx = [ ");
-    for (j = 0; j < self->numvar; ++j) fprintf (out, "%lf ", xx[j]); fprintf(out,"]\n");
+    for (j = 0; j < self->numvar; ++j) fprintf (out, "%f ", xx[j]); fprintf(out,"]\n");
 
     if (numgrdobjnz && grdobjsub && grdobjval)
     {
       fprintf (out,"grdobjsub = [ ");
       for (j = 0; j < *numgrdobjnz; ++j) fprintf (out, "%d ", grdobjsub[j]); fprintf(out,"]\n");
       fprintf (out,"grdobjval = [ ");
-      for (j = 0; j < *numgrdobjnz; ++j) fprintf (out, "%lf ", grdobjval[j]); fprintf(out,"]\n");
+      for (j = 0; j < *numgrdobjnz; ++j) fprintf (out, "%f ", grdobjval[j]); fprintf(out,"]\n");
     }
 
     if (grdconptrb && grdconptre && grdconsub && grdconval && subi)
@@ -960,7 +958,7 @@ SCeval(MSKuserhandle_t nlhandle,
         fprintf (out,"grdconsub[%d] = [ ", subi[i]);
         for (j = grdconptrb[i]; j < grdconptre[i]; ++j) fprintf (out, "%d ", grdconsub[j]); fprintf(out,"]\n");
         fprintf (out,"grdconval[%d] = [ ", subi[i]);
-        for (j = grdconptrb[i]; j < grdconptre[i]; ++j) fprintf (out, "%lf ", grdconval[j]); fprintf(out,"]\n");
+        for (j = grdconptrb[i]; j < grdconptre[i]; ++j) fprintf (out, "%f ", grdconval[j]); fprintf(out,"]\n");
       }
     }
 
@@ -971,7 +969,7 @@ SCeval(MSKuserhandle_t nlhandle,
       fprintf (out,"hessubj = [ ");
       for (j = 0; j < *numhesnz; ++j) fprintf (out, "%d ", hessubj[j]); fprintf(out,"]\n");
       fprintf (out,"hesval = [ ");
-      for (j = 0; j < *numhesnz; ++j) fprintf (out, "%lf ", hesval[j]); fprintf(out,"]\n");
+      for (j = 0; j < *numhesnz; ++j) fprintf (out, "%f ", hesval[j]); fprintf(out,"]\n");
     }
   }
 

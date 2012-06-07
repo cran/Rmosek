@@ -13,8 +13,7 @@ ___RMSK_INNER_NS_START___
 // ------------------------------
 // Cleaning and termination code
 // ------------------------------
-void reset_global_ressources();
-void reset_global_variables();
+void initiate_package();
 void terminate_successfully(SEXP_NamedVector &ret_val);
 void terminate_unsuccessfully(SEXP_NamedVector &ret_val, const msk_exception &e);
 void terminate_unsuccessfully(SEXP_NamedVector &ret_val, const char* msg);

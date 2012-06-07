@@ -10,13 +10,6 @@ using std::string;
 
 
 // ------------------------------
-// Global variables
-// ------------------------------
-pkgMatrixCOO_type global_pkgMatrix_COO;
-pkgMatrixCSC_type global_pkgMatrix_CSC;
-
-
-// ------------------------------
 // Enum matrixformat_enum
 // ------------------------------
 
@@ -41,8 +34,6 @@ matrixformat_enum get_matrixformat(string name)
 // ------------------------------
 // Class simple_matrixCOO_type
 // ------------------------------
-
-const simple_matrixCOO_type::R_ARGS_type simple_matrixCOO_type::R_ARGS;
 
 void simple_matrixCOO_type::R_read(SEXP_LIST object, std::string name) {
 	if (initialized) {
@@ -125,12 +116,12 @@ void simple_matrixCOO_type::MOSEK_write(Task_handle &task) {
 	}
 
 	// Convert sub indexing (Minus one because MOSEK indexes counts from 0, not from 1 as R)
-	MSKintt msksubi[_nnz];
+	auto_array<MSKintt> msksubi(new MSKintt[_nnz]);
 	for (R_len_t i = 0; i < _nnz; i++)
 		msksubi[i] = INTEGER_ELT(subi,i) - 1;
 
 	// Convert sub indexing (Minus one because MOSEK indexes counts from 0, not from 1 as R)
-	MSKintt msksubj[_nnz];
+	auto_array<MSKintt> msksubj(new MSKintt[_nnz]);
 	for (R_len_t j = 0; j < _nnz; j++)
 		msksubj[j] = INTEGER_ELT(subj,j) - 1;
 
@@ -144,10 +135,6 @@ void simple_matrixCOO_type::MOSEK_write(Task_handle &task) {
 // ------------------------------
 // Class pkgMatrixCOO_type
 // ------------------------------
-
-CHM_TR pkgMatrixCOO_type::matrix = NULL;
-bool pkgMatrixCOO_type::initialized = false;
-bool pkgMatrixCOO_type::cholmod_allocated = false;
 
 pkgMatrixCOO_type::~pkgMatrixCOO_type() {
 	if (initialized) {
@@ -246,10 +233,6 @@ void pkgMatrixCOO_type::MOSEK_write(Task_handle &task) {
 // ------------------------------
 // Class pkgMatrixCSC_type
 // ------------------------------
-
-CHM_SP pkgMatrixCSC_type::matrix = NULL;
-bool pkgMatrixCSC_type::initialized = false;
-bool pkgMatrixCSC_type::cholmod_allocated = false;
 
 pkgMatrixCSC_type::~pkgMatrixCSC_type() {
 	if (initialized) {

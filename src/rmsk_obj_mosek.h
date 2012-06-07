@@ -8,7 +8,6 @@
 ___RMSK_INNER_NS_START___
 
 // ------------------------------
-// Global variables:
 // MOSEK environment and task handles
 // ------------------------------
 

@@ -9,16 +9,9 @@ using std::exception;
 
 
 // ------------------------------
-// Global variables
-// ------------------------------
-Env_handle global_env;
-Task_handle global_task;
-
-
-// ------------------------------
 // MOSEK message output function
 // ------------------------------
-static void MSKAPI msk_printoutput(void *handle, char str[]) {
+static void MSKAPI msk_printoutput(void *handle, MSKCONST char str[]) {
 	printoutput(str, typeMOSEK);
 }
 
