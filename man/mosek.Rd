@@ -7,7 +7,9 @@ mosek(problem, opts = list())
 \description{
   Solve an optimization problem using the MOSEK Optimization Library.
 
-  Please see the 'userguide.pdf' for a detailed introduction to this package. This file is located in the "doc" directory at the root of this package:\cr \code{system.file("doc", "userguide.pdf", package="Rmosek")}
+  Please see the 'userguide.pdf' for a detailed introduction to this package. 
+  This file is located in the "doc" directory at the root of this package:
+  \cr \code{system.file("doc", "userguide.pdf", package="Rmosek")}
 }
 \arguments{
 \item{problem}{The optimization problem.
@@ -21,6 +23,7 @@ problem 			\tab LIST			\tab			\cr
 ..$bx				\tab NUMERIC MATRIX (2 rows)	\tab			\cr
 ..$cones			\tab LIST MATRIX (2 rows)	\tab (OPTIONAL)		\cr
 ..$intsub 			\tab NUMERIC VECTOR		\tab (OPTIONAL)		\cr
+..$qobj                         \tab LIST                       \tab (OPTIONAL)         \cr
 ..$scopt			\tab LIST			\tab (OPTIONAL)		\cr
 ..$iparam/$dparam/$sparam	\tab LIST			\tab (OPTIONAL) 	\cr
 ....$<MSK_PARAM> 		\tab STRING / NUMERIC		\tab (OPTIONAL)		\cr
@@ -40,17 +43,35 @@ opts				\tab LIST			\tab (OPTIONAL) 	\cr
 }}
 }
 \details{
-The optimization problem should be described in a named list of definitions. The number of variables in the problem is determined from the number of columns in the constraint matrix \code{A}.
+The optimization problem should be described in a named list of definitions.
+The number of variables in the problem is determined from the number of 
+columns in the constraint matrix \code{A}.
 
-Like a Linear Program it has a linear objective with one coefficient in \code{c} for each variable, some optional constant \code{c0}, and the improving direction \code{sense}. The constraints can either be linear, specified as rows in \code{A} with lower and upper bounds as columns in \code{bc} (you can use \code{Inf} if needed), or conic as specified in the list-typed matrix \code{cones} (add constraints copyx=x if some variable x appears in multiple cones). Each variable has lower and upper bounds as columns in \code{bx}, and will be integer if it appears in the \code{intsub} list.
+Like a Linear Program it has a linear objective with one coefficient in 
+\code{c} for each variable, some optional constant \code{c0}, and the improving
+direction \code{sense}. Quadratic terms can be added to the objective with 
+\code{qobj}. The constraints can either be linear, specified as rows in 
+\code{A} with lower and upper bounds as columns in \code{bc} (you can use 
+\code{Inf} if needed), or conic as specified in the list-typed matrix 
+\code{cones} (add constraints copyx=x if some variable x appears in multiple 
+cones). All variables have lower and upper bounds as columns in \code{bx}, 
+and will be integer if they appear in the \code{intsub} list.
 
-As an advanced feature, non-linear unary operators involving exponential or logarithmic functions can be added with \code{scopt}.
+As an advanced feature, non-linear unary operators involving exponential or 
+logarithmic functions can be added with \code{scopt}. Parameters can also be 
+specified for the MOSEK call. \code{iparam} is integer-typed parameters, 
+\code{dparam} ia double-typed parameters and \code{sparam} is string-typed 
+parameters. These parameters can be ignored by setting the option 
+\code{useparam} to FALSE (the default is TRUE).
 
-Parameters can also be specified for the MOSEK call. \code{iparam} is integer-typed parameters, \code{dparam} ia double-typed parameters and \code{sparam} is string-typed parameters. These parameters can be ignored by setting the option \code{useparam} to FALSE (the default is TRUE).
+Initial solutions are specified in \code{sol} and should have the same format 
+as the solution returned by the function call. This solution can be ignored by 
+setting the option \code{usesol} to FALSE (the default is TRUE).
 
-Initial solutions are specified in \code{sol} and should have the same format as the solution returned by the function call. This solution can be ignored by setting the option \code{usesol} to FALSE (the default is TRUE).
-
-The amount of information printed by the interface can be limited by \code{verbose} (default=10). The generated model can be exported to any standard modeling fileformat (e.g. lp, opf, lp or mbt), with (resp. without) the identified solution using \code{writeafter} (resp. \code{writebefore}). 
+The amount of information printed by the interface can be limited by 
+\code{verbose} (default=10). The generated model can be exported to any 
+standard modeling fileformat (e.g. lp, opf, lp or mbt), with (resp. without) 
+the identified solution using \code{writeafter} (resp. \code{writebefore}). 
 
 The optimization process can be terminated at any moment using CTRL + C.
 \tabular{ll}{
@@ -61,6 +82,7 @@ The optimization process can be terminated at any moment using CTRL + C.
   .$A				\tab Constraint matrix \cr
   .$bc				\tab Lower and upper constraint bounds \cr
   .$bx				\tab Lower and upper variable bounds \cr
+  .$qobj                        \tab Quadratic objective terms \cr
   .$cones			\tab Conic constraints \cr
   .$intsub			\tab Integer variable indexes \cr
   .$scopt			\tab Separable convex optimization \cr
@@ -116,15 +138,28 @@ r				\tab LIST		\tab 			\cr
 \tabular{l}{*Starred items must be requested using an option.\cr}
 }
 
-The result is a named list containing the response of the MOSEK Optimization Library. A response code of zero is the signal of success.
+The result is a named list containing the response of the MOSEK optimization
+library. A response code of zero is the signal of success.
 
-Depending on the specified solver, one or more solutions may be returned. The interior-point solution \code{itr}, the basic (corner point) solution \code{bas}, and the integer solution \code{int}.
+Depending on the specified solver, one or more solutions may be returned. The 
+interior-point solution \code{itr}, the basic (corner point) solution 
+\code{bas}, and the integer solution \code{int}.
 
-The problem status \code{prosta} in all solutions shows the feasibility of your problem description. All solutions are described by a solution status \code{solsta} (e.g. optimal) along with the variable and constraint activities. All activities will further have a bound key that specify their value in relation to the declared bounds.
+The problem status \code{prosta} in all solutions shows the feasibility of your
+problem description. All solutions are described by a solution status 
+\code{solsta} (e.g. optimal) along with the variable and constraint activities.
+All activities will further have a bound key that specify their value in 
+relation to the declared bounds.
 
-Dual variables are returned for all defined bounds wherever possible. Integer solutions \code{int} does not have any dual variables as such definitions would not make sense. Basic (corner point) solutions \code{bas} would never be returned if the problem had conic constraints, and does not define \code{snx}.
+Dual variables are returned for all defined bounds wherever possible. Integer 
+solutions \code{int} does not have any dual variables as such definitions 
+would not make sense. Basic (corner point) solutions \code{bas} would never be 
+returned if the problem had conic constraints, and does not define \code{snx}.
 
-Setting option \code{soldetail} larger than 1 extracts \code{pobjval}, \code{pobjval} and \code{pobjbound}. Larger than 2 extracts \code{maxinfeas}. Setting option \code{getinfo} to \code{TRUE} extracts \code{iinfo} and \code{dinfo}.
+Setting option \code{soldetail} larger than 1 extracts \code{pobjval}, 
+\code{pobjval} and \code{pobjbound}. Larger than 2 extracts \code{maxinfeas}. 
+Setting option \code{getinfo} to \code{TRUE} extracts \code{iinfo} and 
+\code{dinfo}.
 \tabular{lll}{
   r			\tab Result \cr
   .$response		\tab Response from the MOSEK Optimization Library \cr

@@ -1,9 +1,9 @@
 /*
  * The Matrix Package
  *
- * 2011-08-13	Version 0.9996875-3 	Based on revision 2701		Last release requiring R (>= 2.10.0)	<-- Backported
- * 2010-07-13	Version 0.999375-42		Based on revision 2566		Last release requiring R (>= 2.9.1)
- * 2009-10-06	Version 0.999375-31		Based on revision 2486		Last release requiring R (>= 2.9.0)
+ * 2011-08-13   Version 0.9996875-3     Based on revision 2701  Last release requiring R (>= 2.10.0)    <-- Backported
+ * 2010-07-13   Version 0.999375-42     Based on revision 2566  Last release requiring R (>= 2.9.1)
+ * 2009-10-06   Version 0.999375-31     Based on revision 2486  Last release requiring R (>= 2.9.0)
  *
  * The Rmosek package works in the innermost namespace (MSK1). For any function
  * used by the Rmosek package, the compiler will look for prototype declarations in
@@ -38,25 +38,25 @@
 #include "compatibility/pkgMatrixVersion.h"
 
 namespace MSK4 {
-	namespace MSK3 {
-		namespace MSK2 {
-			namespace MSK1 {
-				#include "compatibility/overwriteHead.h"
-			}
-			#include "Matrix.h"
-		}
-	}
-	#include "compatibility/fallbacks.h"
+  namespace MSK3 {
+    namespace MSK2 {
+      namespace MSK1 {
+        #include "compatibility/overwriteHead.h"
+      }
+      #include "Matrix.h"
+    }
+  }
+  #include "compatibility/fallbacks.h"
 }
 
 namespace MSK4 {
-	namespace MSK3 {
-		namespace MSK2 {
-			namespace MSK1 {
-				extern cholmod_common chol;
-			}
-		}
-	}
+  namespace MSK3 {
+    namespace MSK2 {
+      namespace MSK1 {
+        extern cholmod_common chol;
+      }
+    }
+  }
 }
 
 #endif /* RMSK_LOCAL_STUBS_H_ */

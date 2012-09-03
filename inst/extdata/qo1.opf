@@ -1,0 +1,29 @@
+[comment]
+   Written by MOSEK version 7.0.0.2
+   Date 10-08-12
+   Time 11:23:37
+[/comment]
+
+[hints]
+  [hint NUMVAR] 3 [/hint]
+  [hint NUMCON] 1 [/hint]
+  [hint NUMANZ] 3 [/hint]
+  [hint NUMQNZ] 4 [/hint]
+[/hints]
+
+[variables disallow_new_variables]
+  x1 x2 x3 
+[/variables]
+
+[objective minimize]
+   - x2 + 0.5 ( 2e+00 x1 ^ 2 - 2e+00 x3 * x1 + 2e-01 x2 ^ 2 + 2e+00 x3 ^ 2 )
+[/objective]
+
+[constraints]
+  [con c0] 1e+00 <= x1 + x2 + x3 [/con]
+[/constraints]
+
+[bounds]
+  [b]          0 <= * [/b]
+[/bounds]
+

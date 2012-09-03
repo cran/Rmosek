@@ -5,7 +5,8 @@
 mosek_write(problem, modelfile, opts = list())
 }
 \description{
-  Outputs a model of an optimization problem in any standard modeling fileformat (e.g. lp, opf, mps, mbt, etc.), controlled by a set of options. The modeling fileformat is selected based on the extension of the modelfile.
+  Outputs a model of an optimization problem in any standard modeling fileformat (e.g. lp, opf, mps, mbt, etc.), 
+  controlled by a set of options. The modeling fileformat is selected based on the extension of the modelfile.
 }
 \arguments{
 \item{problem}{The optimization problem.
@@ -27,13 +28,22 @@ opts 				\tab LIST		\tab (OPTIONAL)		\cr
 }}
 }
 \details{
-The \code{problem} should be compliant with the input specification of function \code{\link{mosek}}. Please see this function for more details.
+The \code{problem} should be compliant with the input specification of 
+function \code{\link{mosek}}. Please see this function for more details.
 
-The \code{modelfile} should be an absolute or relative path to the model file. If the file extension is \code{.opf}, the model will be written in the Optimization Problem Format. Other formats include lp, mps and mbt.
+The \code{modelfile} should be an absolute or relative path to the model 
+file. If the file extension is \code{.opf}, the model will be written in 
+the Optimization Problem Format. Other formats include lp, mps and mbt.
 
-The amount of information printed by the interface can be limited by \code{verbose} (default=10). Whether to write the initial solution, if one such exists in the problem description, is indicated by \code{usesol} which by default is FALSE. Whether to write the full list of parameter settings, some of which may have been specified by the problem description, is indicated by \code{useparam} which by default is FALSE.
+The amount of information printed by the interface can be limited by 
+\code{verbose} (default=10). Whether to write the initial solution, if 
+one such exists in the problem description, is indicated by \code{usesol} 
+which by default is FALSE. Whether to write the full list of parameter 
+settings, some of which may have been specified by the problem description, 
+is indicated by \code{useparam} which by default is FALSE.
 
-The option \code{scofile} is used in separable convex optimization to specify the absolute or relative path to the operator file.
+The option \code{scofile} is used in separable convex optimization to 
+specify the absolute or relative path to the operator file.
 
 \tabular{ll}{
   problem 		\tab Problem description \cr
@@ -59,7 +69,8 @@ r				\tab LIST		\tab 			\cr
 \tabular{l}{*Starred items must be requested using an option.\cr}
 }
 
-The result is a named list containing the response of the MOSEK Optimization Library when writing to the model file. A response code of zero is the signal of success.
+The result is a named list containing the response of the MOSEK Optimization Library 
+when writing to the model file. A response code of zero is the signal of success.
 
 Setting option \code{getinfo} to \code{TRUE} extracts \code{iinfo} and \code{dinfo}.
 \tabular{lll}{

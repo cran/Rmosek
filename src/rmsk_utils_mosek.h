@@ -21,12 +21,12 @@ ___RMSK_INNER_NS_START___
 // ------------------------------
 
 typedef enum MSK_sk_solitem_enum {
-	MSK_SK_SOL_ITEM_BEGIN=0,
-	MSK_SK_SOL_ITEM_END=3,
+  MSK_SK_SOL_ITEM_BEGIN=0,
+  MSK_SK_SOL_ITEM_END=3,
 
-	MSK_SK_SOL_ITEM_SKC=0,
-	MSK_SK_SOL_ITEM_SKX=1,
-	MSK_SK_SOL_ITEM_SKN=2
+  MSK_SK_SOL_ITEM_SKC=0,
+  MSK_SK_SOL_ITEM_SKX=1,
+  MSK_SK_SOL_ITEM_SKN=2
 } MSK_sk_soliteme;
 
 // Convert objective sense to and from MOSEK and R

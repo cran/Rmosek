@@ -7,11 +7,11 @@
  * This file fixes the order of initialization.
  *
  * Global variables are used for:
- * 		- Static classes of constants (e.g. strings)
- * 		- Simple execution flags
- * 		- Resources circumventing the R garbage collector, e.g.:
- * 			- when it is cached between function calls (the MOSEK license)
- * 			- when its type is not supported in R (in global scope, because Rf_error terminates without calling destructors in local scope)
+ *      - Static classes of constants (e.g. strings)
+ *      - Simple execution flags
+ *      - Resources circumventing the R garbage collector, e.g.:
+ *      - when it is cached between function calls (the MOSEK license)
+ *      - when its type is not supported in R (in global scope, because Rf_error terminates without calling destructors in local scope)
  */
 
 #define R_NO_REMAP
@@ -34,10 +34,10 @@ using std::string;
 /*
  * Declarations: rmsk_msg_base.h
  */
-double mosek_interface_verbose  = R_NaN;			// Declare messages as pending
-int    mosek_interface_warnings = 0;				// Start warning count from zero
-bool   mosek_interface_signal_caught = false;		// Indicate whether the CTRL+C interrupt has been registered
-bool   mosek_interface_termination_success = true;	// Indicate whether the interfaced terminated properly
+double mosek_interface_verbose  = R_NaN;                // Declare messages as pending
+int    mosek_interface_warnings = 0;                    // Start warning count from zero
+bool   mosek_interface_signal_caught = false;           // Indicate whether the CTRL+C interrupt has been registered
+bool   mosek_interface_termination_success = true;      // Indicate whether the interfaced terminated properly
 
 
 /*
@@ -71,6 +71,12 @@ const scoptOPR_type::ITEMS_type::OPRC_type::R_ARGS_type scoptOPR_type::ITEMS_typ
 
 
 /*
+ * Declarations: rmsk_obj_qobj.h
+ */
+const qobj_type::R_ARGS_type qobj_type::R_ARGS;
+
+
+/*
  * Declarations: rmsk_obj_matrices.h
  */
 const simple_matrixCOO_type::R_ARGS_type simple_matrixCOO_type::R_ARGS;
@@ -94,26 +100,26 @@ pkgMatrixCSC_type global_pkgMatrix_CSC;
 
 void reset_global_ressources(bool includeCachedResources) {
 
-	global_pkgMatrix_CSC.~pkgMatrixCSC_type();
-	global_pkgMatrix_COO.~pkgMatrixCOO_type();
-	global_task.~Task_handle();
-	delete_all_pendingmsg();
+  global_pkgMatrix_CSC.~pkgMatrixCSC_type();
+  global_pkgMatrix_COO.~pkgMatrixCOO_type();
+  global_task.~Task_handle();
+  delete_all_pendingmsg();
 
-	if (includeCachedResources) {
-		// The mosek environment 'global_env' should normally not be cleared, as we wish to
-		// reuse the license until mosek_clean() is called or package is unloaded.
-		global_env.~Env_handle();
-	}
+  if (includeCachedResources) {
+    // The mosek environment 'global_env' should normally not be cleared, as we wish to
+    // reuse the license until mosek_clean() is called or package is unloaded.
+    global_env.~Env_handle();
+  }
 
 }
 
 void reset_global_execution_flags() {
-	// This should be done at the beginning of a new function call
+  // This should be done at the beginning of a new function call
 
-	mosek_interface_verbose  = R_NaN;   			// Declare messages as pending
-	mosek_interface_warnings = 0;
-	mosek_interface_signal_caught = false;
-	mosek_interface_termination_success = false;	// No success before we call 'terminate_successfully' or 'mosek_clean'
+  mosek_interface_verbose  = R_NaN;             // Declare messages as pending
+  mosek_interface_warnings = 0;
+  mosek_interface_signal_caught = false;
+  mosek_interface_termination_success = false;  // No success before we call 'terminate_successfully' or 'mosek_clean'
 }
 
 ___RMSK_INNER_NS_END___

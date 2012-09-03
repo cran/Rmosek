@@ -1,8 +1,21 @@
 Rmosek News
 
 
-CHANGES IN Rmosek VERSION 1.2.3:
+CHANGES IN Rmosek VERSION 1.2.4:
 
+
+  NEW FEATURES:
+
+    *  Quadratic optimization. Added problem item 'qobj' to allow the input
+       of a symmetric matrix Q, adding 1/2 x^T Q x to the objective function. 
+       Dimensions known from x, so only triplets 'i', 'j' and 'v' for the lower
+       triangular part of the symmetric matrix are set. E.g.
+         prob$qobj <- list(i=c(1,2,2), j=c(1,1,2), v=c(2,1,2))
+
+
+
+CHANGES IN Rmosek VERSION 1.2.3:
+Based on rev.107.
 
   Bug and portability fixing release..
 

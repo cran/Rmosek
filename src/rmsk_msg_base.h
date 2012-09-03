@@ -38,25 +38,25 @@ void delete_all_pendingmsg();
 // RESPONSE AND EXCEPTION SYSTEM
 // ------------------------------
 struct msk_response {
-	double code;
-	std::string msg;
+  double code;
+  std::string msg;
 
-	msk_response(const std::string &msg) : code(R_NaN), msg(msg) {}
-	msk_response(double code, const std::string &msg) : code(code), msg(msg) {}
+  msk_response(const std::string &msg) : code(R_NaN), msg(msg) {}
+  msk_response(double code, const std::string &msg) : code(code), msg(msg) {}
 };
 
 struct msk_exception : public std::runtime_error {
-	const double code;
+  const double code;
 
-	// Used for MOSEK errors with response codes
-	msk_exception(const msk_response &res) : std::runtime_error(res.msg), code(res.code) {}
+  // Used for MOSEK errors with response codes
+  msk_exception(const msk_response &res) : std::runtime_error(res.msg), code(res.code) {}
 
-	// Used for interface errors without response codes
-	msk_exception(const std::string &msg) : std::runtime_error(msg), code(R_NaN) {}
+  // Used for interface errors without response codes
+  msk_exception(const std::string &msg) : std::runtime_error(msg), code(R_NaN) {}
 
-	msk_response getresponse() const {
-		return msk_response(code, what());
-	}
+  msk_response getresponse() const {
+    return msk_response(code, what());
+  }
 };
 
 
@@ -70,40 +70,40 @@ bool ISPOS(double x);
 template <class T>
 std::string tostring(T val)
 {
-	std::ostringstream ss;
-	ss << val;
-	return ss.str();
+  std::ostringstream ss;
+  ss << val;
+  return ss.str();
 }
 
 // TODO: Upgrade to new C++11 unique_ptr
 template<class T>
 class auto_array {
 private:
-	T* arr;
+  T* arr;
 
-	// Overwrite copy constructor (assignment operator) and provide no implementation
-	auto_array(const auto_array& that);
-	auto_array& operator=(const auto_array& that);
+  // Overwrite copy constructor (assignment operator) and provide no implementation
+  auto_array(const auto_array& that);
+  auto_array& operator=(const auto_array& that);
 
-	void init(T *obj) {
-	  arr = obj;
-	}
+  void init(T *obj) {
+    arr = obj;
+  }
 
 public:
-	operator T*() { return arr; }
+  operator T*() { return arr; }
 
-	explicit auto_array(T *obj = NULL) { init(obj); }
+  explicit auto_array(T *obj = NULL) { init(obj); }
 
-	~auto_array() {
-		if (arr != NULL) {
-			delete[] arr;
-		}
-	}
+  ~auto_array() {
+    if (arr != NULL) {
+      delete[] arr;
+    }
+  }
 
-	void protect(T *obj) {
-	  this->~auto_array();
-	  init(obj);
-	}
+  void protect(T *obj) {
+    this->~auto_array();
+    init(obj);
+  }
 };
 
 class FILE_handle {

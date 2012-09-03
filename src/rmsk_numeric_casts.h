@@ -15,60 +15,60 @@ ___RMSK_INNER_NS_START___
 template<class OUT, class IN>
 OUT numeric_cast(IN var) {
 
-	// TODO: Keep this updated!
-	typedef MSKint64t LARGEST_SIGNED_INTEGRAL;
-	typedef MSKuint64t LARGEST_UNSIGNED_INTEGRAL;
+  // TODO: Keep this updated!
+  typedef MSKint64t LARGEST_SIGNED_INTEGRAL;
+  typedef MSKuint64t LARGEST_UNSIGNED_INTEGRAL;
 
-	const bool osigned = std::numeric_limits<OUT>::is_signed;
-	const OUT omin = std::numeric_limits<OUT>::min();
-	const OUT omax = std::numeric_limits<OUT>::max();
+  const bool osigned = std::numeric_limits<OUT>::is_signed;
+  const OUT omin = std::numeric_limits<OUT>::min();
+  const OUT omax = std::numeric_limits<OUT>::max();
 
-	if (osigned) {
+  if (osigned) {
 
-		if (var >= static_cast<IN>(0)) {
-			// var >= 0 >= omin and omax >= 0
+    if (var >= static_cast<IN>(0)) {
+      // var >= 0 >= omin and omax >= 0
 
-			LARGEST_UNSIGNED_INTEGRAL var2 = static_cast<LARGEST_UNSIGNED_INTEGRAL>(var);
-			LARGEST_UNSIGNED_INTEGRAL omax2 = static_cast<LARGEST_UNSIGNED_INTEGRAL>(omax);
+      LARGEST_UNSIGNED_INTEGRAL var2 = static_cast<LARGEST_UNSIGNED_INTEGRAL>(var);
+      LARGEST_UNSIGNED_INTEGRAL omax2 = static_cast<LARGEST_UNSIGNED_INTEGRAL>(omax);
 
-			if (var2 <= omax2) {
-				return static_cast<OUT>(var);
-			} else {
-				throw msk_exception(RMSK_OUT_OF_BOUNDS_MSG);
-			}
+      if (var2 <= omax2) {
+        return static_cast<OUT>(var);
+      } else {
+        throw msk_exception(RMSK_OUT_OF_BOUNDS_MSG);
+      }
 
-		} else {
-			// var <= 0 <= omax and omin <= 0
+    } else {
+      // var <= 0 <= omax and omin <= 0
 
-			LARGEST_SIGNED_INTEGRAL var2 = static_cast<LARGEST_SIGNED_INTEGRAL>(var);
-			LARGEST_SIGNED_INTEGRAL omin2 = static_cast<LARGEST_SIGNED_INTEGRAL>(omin);
+      LARGEST_SIGNED_INTEGRAL var2 = static_cast<LARGEST_SIGNED_INTEGRAL>(var);
+      LARGEST_SIGNED_INTEGRAL omin2 = static_cast<LARGEST_SIGNED_INTEGRAL>(omin);
 
-			if (omin2 <= var2) {
-				return static_cast<OUT>(var);
-			} else {
-				throw msk_exception(RMSK_OUT_OF_BOUNDS_MSG);
-			}
-		}
+      if (omin2 <= var2) {
+        return static_cast<OUT>(var);
+      } else {
+        throw msk_exception(RMSK_OUT_OF_BOUNDS_MSG);
+      }
+    }
 
-	} else {
+  } else {
 
-		if (var >= static_cast<IN>(0)) {
-			// var >= 0 >= omin and omax >= 0
+    if (var >= static_cast<IN>(0)) {
+      // var >= 0 >= omin and omax >= 0
 
-			LARGEST_UNSIGNED_INTEGRAL var2 = static_cast<LARGEST_UNSIGNED_INTEGRAL>(var);
-			LARGEST_UNSIGNED_INTEGRAL omax2 = static_cast<LARGEST_UNSIGNED_INTEGRAL>(omax);
+      LARGEST_UNSIGNED_INTEGRAL var2 = static_cast<LARGEST_UNSIGNED_INTEGRAL>(var);
+      LARGEST_UNSIGNED_INTEGRAL omax2 = static_cast<LARGEST_UNSIGNED_INTEGRAL>(omax);
 
-			if (var2 <= omax2) {
-				return static_cast<OUT>(var);
-			} else {
-				throw msk_exception(RMSK_OUT_OF_BOUNDS_MSG);
-			}
+      if (var2 <= omax2) {
+        return static_cast<OUT>(var);
+      } else {
+        throw msk_exception(RMSK_OUT_OF_BOUNDS_MSG);
+      }
 
-		} else {
-			throw msk_exception(RMSK_OUT_OF_BOUNDS_MSG);
-		}
+    } else {
+      throw msk_exception(RMSK_OUT_OF_BOUNDS_MSG);
+    }
 
-	}
+  }
 }
 
 

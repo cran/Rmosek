@@ -11,16 +11,16 @@
 #ifndef RMSK_NAMESPACE_H_
 #define RMSK_NAMESPACE_H_
 
-#define ___RMSK_INNER_NS_START___ \
-namespace MSK4 {				 \
-	namespace MSK3 {			 \
-		namespace MSK2 {		 \
-			namespace MSK1 {
+#define ___RMSK_INNER_NS_START___       \
+namespace MSK4 {                        \
+  namespace MSK3 {                      \
+    namespace MSK2 {                    \
+      namespace MSK1 {
 
-#define ___RMSK_INNER_NS_END___	 \
-			}					 \
-		}						 \
-	}							 \
+#define ___RMSK_INNER_NS_END___         \
+      }                                 \
+    }                                   \
+  }                                     \
 }
 
 // Create namespace

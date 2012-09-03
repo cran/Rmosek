@@ -5,7 +5,10 @@
 mosek_read(modelfile, opts = list())
 }
 \description{
-  Interprets a model from any standard modeling fileformat (e.g. lp, opf, mps, mbt, etc.), controlled by a set of options. The result contains an optimization problem which is compliant with the input specifications of function \code{mosek}.
+  Interprets a model from any standard modeling fileformat (e.g. lp, opf, mps, mbt, etc.), 
+  controlled by a set of options. The result contains an optimization problem which is 
+  compliant with the input specifications of function 
+\code{mosek}.
 }
 \arguments{
 \item{modelfile}{The file containing an optimization model.
@@ -26,11 +29,21 @@ opts 				\tab LIST		\tab (OPTIONAL)		\cr
 \details{
 The \code{modelfile} should be an absolute or relative path to a model file. 
 
-The amount of information printed by the interface can be limited by \code{verbose} (default=10). Whether to read the initial solution, if one such exists in the model file, is indicated by \code{usesol} which by default is FALSE. Whether to read the full list of parameter settings, some of which may have been defined by the model file, is indicated by \code{useparam} which by default is FALSE. 
+The amount of information printed by the interface can be limited by 
+\code{verbose} (default=10). Whether to read the initial solution, if 
+one such exists in the model file, is indicated by \code{usesol} which 
+by default is FALSE. Whether to read the full list of parameter settings, 
+some of which may have been defined by the model file, is indicated by 
+\code{useparam} which by default is FALSE. 
 
-The option \code{scofile} is used in separable convex optimization to specify the absolute or relative path to the operator file.
+The option \code{scofile} is used in separable convex optimization to specify 
+the absolute or relative path to the operator file.
 
-The format of the imported constraint matrix is controlled by \code{matrixformat} and can be either sparse coordinate \code{COO}, compressed sparse column \code{CSC}, or a list-based alternative \code{simple:COO}. The matrix formats \code{CSC} and \code{COO} are based on the package 'Matrix' superclasses \code{CsparseMatrix} and \code{TsparseMatrix}.
+The format of the imported constraint matrix is controlled by \code{matrixformat} 
+and can be either sparse coordinate \code{COO}, compressed sparse column 
+\code{CSC}, or a list-based alternative \code{simple:COO}. The matrix formats 
+\code{CSC} and \code{COO} are based on the package 'Matrix' superclasses 
+\code{CsparseMatrix} and \code{TsparseMatrix}.
 
 \tabular{ll}{
   modelfile		\tab Filepath to the model \cr
@@ -57,9 +70,12 @@ r				\tab LIST		\tab 			\cr
 \tabular{l}{*Starred items must be requested using an option.\cr}
 }
 
-The result is a named list containing the response of the MOSEK Optimization Library when reading the model file. A response code of zero is the signal of success.
+The result is a named list containing the response of the MOSEK Optimization Library 
+when reading the model file. A response code of zero is the signal of success.
 
-On success, the result contains the problem specification with all problem data. This problem specification is compliant with the input specifications of function \code{\link{mosek}}.
+On success, the result contains the problem specification with all problem data. 
+This problem specification is compliant with the input specifications of function 
+\code{\link{mosek}}.
 
 Setting option \code{getinfo} to \code{TRUE} extracts \code{iinfo} and \code{dinfo}.
 \tabular{lll}{
@@ -90,6 +106,12 @@ Setting option \code{getinfo} to \code{TRUE} extracts \code{iinfo} and \code{din
  if (!identical(rr$response$code, 0))
    stop("Failed to read model file")
  rcqo1 <- mosek(rr$prob)
+
+ modelfile <- system.file(package="Rmosek", "extdata", "qo1.opf")
+ rr <- mosek_read(modelfile)
+ if (!identical(rr$response$code, 0))
+   stop("Failed to read model file")
+ rqo1 <- mosek(rr$prob)
 
  modelfile <- system.file(package="Rmosek", "extdata", "sco1.opf")
  modelscofile <- system.file(package="Rmosek", "extdata", "sco1.sco")
