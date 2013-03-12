@@ -1,5 +1,5 @@
 Package: Rmosek
-Version: 1.2.4
+Version: 1.2.5
 Title: The R-to-MOSEK Optimization Interface
 Author: Henrik Alsing Friberg
 Maintainer: Henrik Alsing Friberg <haf@mosek.com>
@@ -14,6 +14,10 @@ LinkingTo: Matrix
 Depends: R(>= 2.10.0), Matrix(>= 0.9996875-3)
 License: LGPL (>= 2.1)
 URL: http://rmosek.r-forge.r-project.org/, http://www.mosek.com/
-Packaged: 2012-09-03 12:30:55 UTC; hap
 Repository: CRAN
-Date/Publication: 2012-09-04 08:54:48
+Repository/R-Forge/Project: rmosek
+Repository/R-Forge/Revision: 120
+Repository/R-Forge/DateTimeStamp: 2013-03-12 10:24:35
+Date/Publication: 2013-06-04 15:15:10
+Packaged: 2013-03-12 21:30:13 UTC; rforge
+NeedsCompilation: yes

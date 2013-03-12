@@ -1,7 +1,7 @@
 /*
  * AUTO-GENERATED FILE - DO NOT EDIT!
  * File created by 'configure_script.R'
- */
+ */ 
 
 #ifndef RMSK_PKGMATRIXVERSION_H_
 #define RMSK_PKGMATRIXVERSION_H_

@@ -1,6 +1,15 @@
 Rmosek News
 
 
+CHANGES IN Rmosek VERSION 1.2.5:
+
+
+  Eliminated used of extended regular expressions..
+  Fixed unintended compilation warnings on windows..
+  Small updates in userguide and function manual..
+
+
+
 CHANGES IN Rmosek VERSION 1.2.4:
 
 

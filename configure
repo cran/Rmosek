@@ -73,7 +73,7 @@ if (eval ! $ISDEF_PKG_MOSEKHOME) && (eval ! $ISDEF_PKG_MOSEKLIB); then
     # (2) From those whos name does not have additional specifiers (only integers/underscores allowed)
     #     and whos filetype is either .so (uname="Linux") or .dylib (uname="Darwin").
     # (3) Extract the integers/underscores if any, and add prefix 'mosek'
-    PKG_MOSEKLIB=$(find $PKG_MOSEKHOME/bin -name 'libmosek*.*' | grep '\/libmosek\([0-9_]*\).\(so\|dylib\)*$' | sed -E 's/(.*)libmosek([0-9_]*).(so|dylib)/mosek\2/g');
+    PKG_MOSEKLIB=$(find $PKG_MOSEKHOME/bin -name 'libmosek*.*' | grep '\/libmosek[0-9_]*\.\(so\|dylib\)$' | sed 's/.*\/lib//' | sed 's/\.so$//' | sed 's/\.dylib$//');
 
   fi;
 

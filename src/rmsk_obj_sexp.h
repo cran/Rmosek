@@ -95,7 +95,7 @@ private:
 
 public:
   // Simple constructor and implicit SEXP conversion
-  SEXP_Vector() : initialized(false), maxsize(0), static_size(true), itemstype(VECSXP) { }
+  SEXP_Vector() : initialized(false), static_size(true), itemstype(VECSXP), maxsize(0) { }
   operator SEXP() { return items; }
 
   // Initialise vector with type and capacity

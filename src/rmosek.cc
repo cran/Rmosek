@@ -32,6 +32,7 @@
 // it possible to release a modified version which carries forward this exception.
 //
 
+
 #define R_NO_REMAP
 #include "rmsk_namespace.h"
 #include "rmsk_msg_mosek.h"

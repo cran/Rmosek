@@ -44,8 +44,8 @@ if (eval ! $ISDEF_PKG_MOSEKHOME) && (eval ! $ISDEF_PKG_MOSEKLIB); then
   # (4) remove the carriage returns
   # (5) remove trailing spaces
 
-  PKG_MOSEKHOME=$(cat $LOCALSYS_PATH | grep "^PKG_MOSEKHOME" | sed -r 's/^([ ]*)PKG_MOSEKHOME([ :]*)=([ ]*)(.*)/\4/g' | sed 's/[\r]*$//g' | sed 's/[ ]*$//g' | sed 's/\"//g');
-  PKG_MOSEKLIB=$(cat $LOCALSYS_PATH | grep "^PKG_MOSEKLIB" | sed -r 's/^([ ]*)PKG_MOSEKLIB([ :]*)=([ ]*)(.*)/\4/g' | sed 's/[\r]*$//g' | sed 's/[ ]*$//g' | sed 's/\"//g');
+  PKG_MOSEKHOME=$(cat $LOCALSYS_PATH | grep "^PKG_MOSEKHOME" | sed 's/^[ ]*PKG_MOSEKHOME[ :]*=[ ]*\(.*\)/\1/g' | sed 's/[\r]*$//g' | sed 's/[ ]*$//g' | sed 's/\"//g');
+  PKG_MOSEKLIB=$(cat $LOCALSYS_PATH | grep "^PKG_MOSEKLIB" | sed 's/^[ ]*PKG_MOSEKLIB[ :]*=[ ]*\(.*\)/\1/g' | sed 's/[\r]*$//g' | sed 's/[ ]*$//g' | sed 's/\"//g');
 
   if (eval $ISDEF_PKG_MOSEKHOME) || (eval $ISDEF_PKG_MOSEKLIB); then
     echo "Found variable definitions in $LOCALSYS_PATH file";
@@ -68,7 +68,7 @@ if (eval ! $ISDEF_PKG_MOSEKHOME) && (eval ! $ISDEF_PKG_MOSEKLIB); then
     # (1) Go through all mosek library files
     # (2) From those that does not have additional specifiers (integers/underscores allowed)
     # (3) Extract the integers/underscores if any, and add prefix 'mosek'
-    PKG_MOSEKLIB=$(where /R "$PKG_MOSEKHOME" "mosek*.lib" | grep -E 'mosek([0-9_]*).lib*$' | sed -r 's/(.*)mosek([0-9_]*).lib/mosek\2/g');  
+    PKG_MOSEKLIB=$(where /R "$PKG_MOSEKHOME" "mosek*.lib" | grep 'mosek[0-9_]*\.lib$' | sed 's/.*\\//' | sed 's/\.lib$//');
 
   fi;
 

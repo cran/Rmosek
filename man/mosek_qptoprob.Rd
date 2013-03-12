@@ -5,7 +5,7 @@
 mosek_qptoprob(F,f,A,b,Aeq,beq,lb,ub)
 }
 \description{
-  Construct a problem description from the following quadratic program:
+  Construct a conic problem description from the following quadratic program:
 
   \tabular{ll}{  
     minimize: \tab f'x + 0.5x'(F'F)x \cr
@@ -16,7 +16,14 @@ mosek_qptoprob(F,f,A,b,Aeq,beq,lb,ub)
     \tab lb <= x <= ub
   }
 
-  The result of this function is compatible with the problem description of the \code{mosek} function.
+  Given that F is not known, but Q = F'F on the other hand is, we can estimate 
+  F from Q by the Cholesky Decomposition: F = Matrix::chol(Q). The result of 
+  the \code{mosek_qptoprob} function is compatible with the problem description 
+  of the \code{mosek} function. 
+
+  Note that problems with a quadratic objective can also be formulated without
+  cones, using the field 'qobj' in the problem description. This is documented 
+  in the userguide.
 }
 \arguments{
 \item{F}{Objective quadratic coefficient matrix (size mF x n)}
