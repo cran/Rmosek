@@ -1,6 +1,6 @@
 51a322ca54004f06ff1b1399746f4b06 *COPYING
 4fbd65380cdd255951079008b364516c *COPYING.LGPL
-5bb0139dd764c2f864c79aba3937fb7c *DESCRIPTION
+3db095edfaff358247bb4d25a81414ce *DESCRIPTION
 2c77b35005ee95865294f411eb4e6aba *NAMESPACE
 6f9ac564d45541b415e21a3908807e19 *NEWS
 171bbbc180490b3ef5c39676d1e777c6 *R/main.R
@@ -31,7 +31,7 @@ eb7f6bba2778f93b7f3dc7d577ef8ecd *src/compatibility/fallbacks.cc
 5cfeaa9bc7933c92487aaf081c173a98 *src/compatibility/overwriteBody.cc
 0184f6e5e7b6a1f80f604d2bc537012f *src/compatibility/overwriteHead.cc
 b1e1a3091293e9f16094affe48d03d25 *src/compatibility/overwriteHead.h
-9ed7b6237b9f8ed487476a5cd8b1c762 *src/compatibility/pkgMatrixVersion.h
+41dc656a546d21498c1baf9cb65aba3b *src/compatibility/pkgMatrixVersion.h
 98903cfb8b0a6dcd012c4dc4fbcc1146 *src/local_stubs.cc
 8cfd97b73b39596aafc4b36dad3f02c5 *src/local_stubs.h
 3274dc93ee56706662a6cbcfd5555482 *src/rmsk_globalvars.cc
@@ -52,7 +52,7 @@ dea3fab02b9e819c0196a1ea62f2b42f *src/rmsk_numeric_casts.h
 37fb2383eb2c77b917279516093bd613 *src/rmsk_obj_mosek.h
 21bcb062b20bcae900c915ccff73c501 *src/rmsk_obj_qobj.cc
 06bc7c09c6bcc38aae86f47b90afbd82 *src/rmsk_obj_qobj.h
-6299b2d47a7ac9a8fbbcc9cc27a721bd *src/rmsk_obj_sexp.cc
+6eaaaf9dc1227cae3185c442cb22b345 *src/rmsk_obj_sexp.cc
 493cd6149e0f5ae2d533b46278a603ad *src/rmsk_obj_sexp.h
 7b32bcb6a0a94e2c940d00b82d427f1f *src/rmsk_utils_interface.cc
 c4bc7a178654e7e6b5238c38018a7a48 *src/rmsk_utils_interface.h
@@ -62,6 +62,6 @@ d4b50f3c150aa850a074e49a04a3e1d6 *src/rmsk_utils_scopt.cc
 f8f1c4593277316571ff692e805327f2 *src/rmsk_utils_scopt.h
 4d0d1d00dc22a1f53d299ee9ce187186 *src/rmsk_utils_sexp.cc
 71d13ee2bdcfc4e412358015ae221c98 *src/rmsk_utils_sexp.h
-6061a813601904518ffb26fc52d97053 *src/setup/Localsys.txt
+61b3a098ca536cc5acd6071e49aee1ca *src/setup/Localsys.txt
 b377ecc307baf23b87d7b393e325d256 *src/setup/i386/Localsys.txt
 d498907a75df7695dbc572389dce4642 *src/setup/x64/Localsys.txt

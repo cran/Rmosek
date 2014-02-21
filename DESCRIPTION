@@ -1,5 +1,5 @@
 Package: Rmosek
-Version: 1.2.5
+Version: 1.2.5.1
 Title: The R-to-MOSEK Optimization Interface
 Author: Henrik Alsing Friberg
 Maintainer: Henrik Alsing Friberg <haf@mosek.com>
@@ -18,6 +18,6 @@ Repository: CRAN
 Repository/R-Forge/Project: rmosek
 Repository/R-Forge/Revision: 120
 Repository/R-Forge/DateTimeStamp: 2013-03-12 10:24:35
-Date/Publication: 2013-06-04 15:15:10
-Packaged: 2013-03-12 21:30:13 UTC; rforge
+Date/Publication: 2014-02-21 10:20:15
+Packaged: 2014-02-21 09:13:43 UTC; ripley
 NeedsCompilation: yes

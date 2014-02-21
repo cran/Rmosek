@@ -76,11 +76,11 @@ void SEXP_NamedVector::pushback(std::string name, SEXP item) {
   if (pos >= maxsize)
     throw msk_exception("Internal SEXP_NamedVector did not have enough capacity");
 
-  SET_VECTOR_ELT(items, pos, item);
   SETLENGTH(items, pos+1);
+  SET_VECTOR_ELT(items, pos, item);
 
-  SET_STRING_ELT(names, pos, Rf_mkChar(name.c_str()));
   SETLENGTH(names, pos+1);
+  SET_STRING_ELT(names, pos, Rf_mkChar(name.c_str()));
 }
 
 void SEXP_NamedVector::pushback(std::string name, char* item) {
@@ -202,12 +202,11 @@ void SEXP_Vector::pushback(SEXP item) {
   if (pos >= maxsize)
     throw msk_exception("Internal SEXP_Vector did not have enough capacity");
 
+  SETLENGTH(items, pos+1);
   if (itemstype == STRSXP)
     SET_STRING_ELT(items, pos, item);
   else
     SET_VECTOR_ELT(items, pos, item);
-
-  SETLENGTH(items, pos+1);
 }
 
 void SEXP_Vector::pushback(char* item) {

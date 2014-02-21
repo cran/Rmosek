@@ -1,14 +1,9 @@
-/*
- * AUTO-GENERATED FILE - DO NOT EDIT!
- * File created by 'configure_script.R'
- */ 
-
 #ifndef RMSK_PKGMATRIXVERSION_H_
 #define RMSK_PKGMATRIXVERSION_H_
 
-#define pkgMatrixVersion_MAJOR 0
-#define pkgMatrixVersion_MINOR 0
-#define pkgMatrixVersion_PATCH 0
+#define pkgMatrixVersion_MAJOR 1
+#define pkgMatrixVersion_MINOR 1
+#define pkgMatrixVersion_PATCH 2
 
 #define pkgMatrixVersion_LESS_THAN_OR_EQUAL(x,y,z)                                              \
     (pkgMatrixVersion_MAJOR  < x) ||                                                            \
