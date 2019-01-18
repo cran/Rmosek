@@ -1,4 +1,0 @@
-
-PKG_MOSEKHOME:=/data/gannet/ripley/Sources/mosek/6/tools/platform/linux64x86
-PKG_MOSEKLIB:=mosek64
-

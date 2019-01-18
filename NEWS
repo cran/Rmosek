@@ -1,17 +1,24 @@
 Rmosek News
 
+CHANGES IN Rmosek VERSION 1.3.0:
+
+  Changed the 'Rmosek' package on CRAN to a generic metapackage that can help 
+  users setup an appropriate interface for the installed version of MOSEK. This
+  replaces the previous package that only worked with MOSEK 6.0 (obsolete since
+  2015), which will remain available via install.packages using:
+
+    repos = "download.mosek.com/R/6.0"
+
+
 
 CHANGES IN Rmosek VERSION 1.2.5:
 
-
-  Eliminated used of extended regular expressions..
   Fixed unintended compilation warnings on windows..
   Small updates in userguide and function manual..
 
 
 
 CHANGES IN Rmosek VERSION 1.2.4:
-
 
   NEW FEATURES:
 

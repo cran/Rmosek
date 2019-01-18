@@ -1,12 +1,4 @@
-useDynLib("Rmosek", .registration = TRUE)
+importFrom("utils", "help", "install.packages", "packageDescription",
+             "remove.packages", "update.packages")
 
-import(Matrix)
-
-export(mosek)
-export(mosek_clean)
-export(mosek_version)
-export(mosek_read)
-export(mosek_write)
-
-export(mosek_lptoprob)
-export(mosek_qptoprob)
+export(mosek_attachbuilder)
