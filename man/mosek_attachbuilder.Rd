@@ -1,38 +1,18 @@
 \name{mosek_attachbuilder}
 \alias{mosek_attachbuilder}
-\title{Attach builder functions (e.g., 'install.rmosek') to the search path}
+\title{Attach builder functions to the search path (install,update,remove)}
 \usage{
 mosek_attachbuilder(what_mosek_bindir, 
                     pos=2L, name="Rmosek:builder", warn.conflicts=TRUE)
 }
 \description{
-This function \code{\link{attach}} a database of functions to the search path:
-
-    install.rmosek     - install Rmosek package.
-    update.rmosek      - update Rmosek package.
-    remove.rmosek      - remove Rmosek package.
-
-These *.rmosek functions wrap the corresponding utils::*.packages functions
-with autoconfigured default argument values:
-      pkgs           = "Rmosek"
-      repos          = "https://download.mosek.com/R/<MOSEKMAJORVER>.<MOSEKMINORVER>"
-
-configuration variables:
-      MSK_BINDIR     : MOSEK 'bin' directory.
-                       If empty, autoconfigured from mosek executable on PATH.
-
-      MSK_HEADERDIR  : MOSEK 'h' directory.
-                       If empty, autoconfigured from 'MSK_BINDIR'.
-
-      MSK_LIB        : MOSEK library file.
-                       If empty, autoconfigured from 'MSK_BINDIR'.
-
-and installation styles:
-      using_pkgbuild : Logical. Whether to execute in the 'pkgbuild' environment
-                       as is recommended on Windows to resolve Rtools.
-                        
-      using_sysenv   : Logical. Whether to transmit configuration variables via 
-                       Sys.setenv() as opposed to configure.vars.
+This function \code{\link{attach}} a database to the search path with utilities
+to manage Rmosek in respect to the system requirement (i.e., MOSEK):
+\tabular{ll}{
+\code{install.rmosek}   \tab Install Rmosek package.\cr
+\code{update.rmosek}    \tab Update Rmosek package. \cr
+\code{remove.rmosek}    \tab Remove Rmosek package. \cr
+}
 }
 \arguments{
 \item{what_mosek_bindir}{
@@ -52,22 +32,52 @@ and installation styles:
     conflict is a function masking a function, or a non-function masking
     a non-function.}
 }
+\details{
+The attached *.rmosek functions (install, update, remove) wrap the corresponding 
+utils::*.packages functions with autoconfigured default argument values:
+\tabular{ll}{
+    pkgs            \tab = "Rmosek"\cr
+    repos           \tab = "https://download.mosek.com/R/<MOSEKMAJORVER>.<MOSEKMINORVER>"\cr
+}
+configuration variables:
+\tabular{ll}{
+    MSK_BINDIR      \tab MOSEK 'bin' directory.\cr
+                    \tab If empty, autoconfigured from mosek executable on PATH.\cr
+\cr
+    MSK_HEADERDIR   \tab MOSEK 'h' directory.\cr
+                    \tab If empty, autoconfigured from 'MSK_BINDIR'.\cr
+\cr
+    MSK_LIB         \tab MOSEK library file.\cr
+                    \tab If empty, autoconfigured from 'MSK_BINDIR'.\cr
+}
+and installation styles:
+\tabular{ll}{
+    using_pkgbuild  \tab Logical. Whether to execute in the 'pkgbuild' environment\cr
+                    \tab as is recommended on Windows to resolve Rtools.\cr
+                        
+    using_sysenv    \tab Logical. Whether to transmit configuration variables via\cr
+                    \tab Sys.setenv() as opposed to configure.vars.\cr
+}
+}
 \examples{
-# Build Rmosek for the given MOSEK Optimization Suite.
 \dontrun{
+#
+# Build Rmosek for the given MOSEK Optimization Suite.
+#
 mosek_attachbuilder("<MSKHOME>/mosek/<MSKVERSION>/tools/platform/<PLATFORM>/bin")
 install.rmosek()
-}
 
-# Update Rmosek for the MOSEK Optimization Suite of the last build.
-\dontrun{
-mosek_attachbuilder()    # Note: the path is read from packageDescription("Rmosek")
+#
+# Update Rmosek for the MOSEK Optimization Suite of the last build (if any).
+#
+mosek_attachbuilder()    # Note: path is read from packageDescription("Rmosek")
 update.rmosek()
-}
 
+#
 # Build Rmosek (from offline package file) for the given MOSEK Optimization Suite.
-\dontrun{
+#
 mosek_attachbuilder("<MSKHOME>/mosek/<MSKVERSION>/tools/platform/<PLATFORM>/bin")
 install.rmosek("<RMOSEKPATH>/Rmosek.tar.gz", repos=NULL)
+
 }
 }

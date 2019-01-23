@@ -1,5 +1,13 @@
 Rmosek News
 
+CHANGES IN Rmosek VERSION 1.3.1:
+
+  Added exported objects: 'mosek', 'mosek_clean', 'mosek_version', 
+  'mosek_read' and 'mosek_write'. This allows derived works, depending
+  on Rmosek functionality, to pass the CRAN tests.
+
+
+
 CHANGES IN Rmosek VERSION 1.3.0:
 
   Changed the 'Rmosek' package on CRAN to a generic metapackage that can help 
