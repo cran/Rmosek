@@ -1,5 +1,12 @@
 Rmosek News
 
+CHANGES IN Rmosek VERSION 1.3.2:
+
+  Added warning when restarts of the R session is necessary.
+  Small updates in the documentation of exported objects.
+
+
+
 CHANGES IN Rmosek VERSION 1.3.1:
 
   Added exported objects: 'mosek', 'mosek_clean', 'mosek_version', 

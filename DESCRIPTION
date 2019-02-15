@@ -1,5 +1,5 @@
 Package: Rmosek
-Version: 1.3.1
+Version: 1.3.2
 Title: The R to MOSEK Optimization Interface
 Author: MOSEK ApS
 Contact: MOSEK ApS <rmosek@mosek.com>
@@ -13,9 +13,9 @@ Description: This is a generic meta-package designed to make the optimization
 URL: http://www.mosek.com/
 Maintainer: Henrik A. Friberg <haf@mosek.com>
 License: LGPL (>= 2.1)
-SystemRequirements: MOSEK (>= 1) and MOSEK License (>= 1)
+SystemRequirements: MOSEK (>= 6) and MOSEK License (>= 6)
 Suggests: pkgbuild
-Packaged: 2019-01-23 13:12:47 UTC; mosek
+Packaged: 2019-02-15 11:44:50 UTC; mosek
 NeedsCompilation: no
 Repository: CRAN
-Date/Publication: 2019-01-23 14:40:09 UTC
+Date/Publication: 2019-02-15 14:00:09 UTC

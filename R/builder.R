@@ -9,12 +9,12 @@
 
 mosek_attachbuilder <- function(what_mosek_bindir, pos=2L, name="Rmosek:builder", warn.conflicts=TRUE)
 {
-  stop("Failed to initialize 'mosek_attachbuilder'. Please close R and try again.")
+  stop("Failed to initialize 'mosek_attachbuilder'. Please restart the R session and try again.")
 }
 
 
 #
-# Initialization of 'Rmosek::mosek_attachbuilder'
+# Initialization of 'mosek_attachbuilder'
 #  - Encapsulated to avoid polution of execution environment if source()'d.
 #
 do.call(function(env)
@@ -24,15 +24,15 @@ do.call(function(env)
   }
 
   #
-  # Helper functions for 'Rmosek::mosek_attachbuilder'
+  # Helper functions for 'mosek_attachbuilder'
   #
   init_builder_default <- function() { 
     formals(function(what_mosek_bindir){})$what_mosek_bindir   # create a symbol named 'what_mosek_bindir' to throw standard error on missing function argument.
-                                                               # NOTE: the direct, as.symbol('what_mosek_bindir'), throws non-standard error messages.
+                                                               # NOTE: the direct creation, as.symbol('what_mosek_bindir'), throws non-standard error messages.
   }
 
   init_builder_from_scriptpath <- function() {
-    out <- init_builder_default()
+    out <- quote(init_builder_default())
     tryCatch({
       scriptpath <- function()
       {
@@ -42,19 +42,23 @@ do.call(function(env)
         }
         if( file.exists(file.path(path,'builder.R')) ) { path } else { NA }
       }
+
       mypath <- scriptpath()
+      if( is.na(mypath) ) {
+        stop("Tried to make 'what_mosek_bindir' an optional argument, but the scriptpath could not be computed.", call.=FALSE)
+      }
 
       guess <- file.path(mypath, "..", "bin")
-      tryCatch(stopifnot(
-        !is.na(guess),
-        file.exists(guess)), error=function(e) stop("Could not identify MOSEK 'bin' directory from scriptpath '", mypath, "'. Pass it as first argument to 'mosek_attachbuilder'.", call.=FALSE))
-      out <- normalizePath(guess)
+      if( !file.exists(guess) ) {
+        stop(paste0("Tried to make 'what_mosek_bindir' an optional argument, but '", guess, "' was not recognized as a MOSEK 'bin' directory."), call.=FALSE)
+      }
+      out <- quote(normalizePath(guess))
     }, error=function(e) warning(e))
-    out
+    eval(out)
   }
 
   #
-  # Definition of 'Rmosek::mosek_attachbuilder'
+  # Definition of 'mosek_attachbuilder'
   #
   mosek_attachbuilder <- function(what_mosek_bindir, pos=2L, name="Rmosek:builder", warn.conflicts=TRUE)
   {
@@ -231,6 +235,10 @@ do.call(function(env)
         install.packages(pkgs=pkgs, repos=repos, type=type, INSTALL_opts=INSTALL_opts, configure.vars=configure.vars, ...)
         }, debug=TRUE)
       }
+
+      if( any(is.element(pkgs,loadedNamespaces())) ) {
+        warning("Please restart the R session for changes to take effect.", call.=FALSE)
+      }
     }
 
     update.rmosek <- function(
@@ -271,6 +279,10 @@ do.call(function(env)
         update.packages(oldPkgs=oldPkgs, repos=repos, type=type, INSTALL_opts=INSTALL_opts, configure.vars=configure.vars, ...)
         }, debug=TRUE)
       }
+
+      if( any(is.element(oldPkgs,loadedNamespaces())) ) {
+        warning("Please restart the R session for changes to take effect.", call.=FALSE)
+      }
     }
 
     remove.rmosek <- function(
@@ -291,6 +303,10 @@ do.call(function(env)
           formals(f)[[arg]] <- eval(formals(f)[[arg]])
         }
       }
+      assign(fn,f,envir=builderenv)
+    }
+    for (fn in c('remove.rmosek')) {
+      f <- get(fn)
       assign(fn,f,envir=builderenv)
     }
 
@@ -344,7 +360,7 @@ do.call(function(env)
   }
 
   #
-  # Eager evaluation of default 'Rmosek::mosek_attachbuilder' function arguments
+  # Eager evaluation of default 'mosek_attachbuilder' function arguments
   #
   for (fn in c('mosek_attachbuilder')) {
     f <- get(fn)
@@ -357,14 +373,15 @@ do.call(function(env)
   }
 
   #
-  # Introduce 'Rmosek::mosek_attachbuilder' to the user
+  # Introduce 'mosek_attachbuilder' to the user
   #
   if( FALSE )
   {
+    bindirarg <- quote(formals(env$mosek_attachbuilder)[['what_mosek_bindir']])
     cat("
-    You may now call 'mosek_attachbuilder' with optional arguments:
+    You may now call 'mosek_attachbuilder(", ifelse(!is.symbol(eval(bindirarg)),"","what_mosek_bindir") , ")' with optional extra arguments:
 
-        mosek_attachbuilder(what_mosek_bindir=", repr(formals(env$mosek_attachbuilder)[['what_mosek_bindir']]),", pos=2L, name=\"Rmosek:builder\", warn.conflicts=TRUE)
+        mosek_attachbuilder(what_mosek_bindir", ifelse(is.symbol(eval(bindirarg)),"",paste0("=",repr(eval(bindirarg)))), ", pos=2L, name=\"Rmosek:builder\", warn.conflicts=TRUE)
 
     to attach builder functions (e.g., 'install.rmosek') to the search path.
 
