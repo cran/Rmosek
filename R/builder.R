@@ -85,7 +85,12 @@ do.call(function(env)
       ""
     }
 
-    guess_mosek_version_from_current_installation <- function()
+    guess_mosek_libname_default <- function()
+    {
+      ""
+    }
+
+    guess_mosek_version_from_current_installation <- function(silent=FALSE)
     {
       out <- guess_mosek_version_default()
       tryCatch({
@@ -93,11 +98,11 @@ do.call(function(env)
         tryCatch(stopifnot(
           !is.na(guess)), error=function(e) stop("Could not identify MOSEK version from current installation.", call.=FALSE))
         out <- guess
-      }, error=function(e) warning(e))
+      }, error=function(e) if(!silent){warning(e)} )
       out
     }
 
-    guess_mosek_bindir_from_current_installation <- function()
+    guess_mosek_bindir_from_current_installation <- function(silent=FALSE)
     {
       out <- guess_mosek_bindir_default()
       tryCatch({
@@ -106,11 +111,11 @@ do.call(function(env)
           !is.na(guess), 
           file.exists(guess)), error=function(e) stop("Could not identify MOSEK 'bin' directory from current installation.", call.=FALSE))
         out <- normalizePath(guess)
-      }, error=function(e) warning(e))
+      }, error=function(e) if(!silent){warning(e)} )
       out
     }
 
-    guess_mosek_headerdir_from_current_installation <- function()
+    guess_mosek_headerdir_from_current_installation <- function(silent=FALSE)
     {
       out <- guess_mosek_headerdir_default()
       tryCatch({
@@ -119,11 +124,30 @@ do.call(function(env)
           !is.na(guess), 
           file.exists(guess)), error=function(e) stop("Could not identify MOSEK 'h' directory from current installation.", call.=FALSE))
         out <- normalizePath(guess)
-      }, error=function(e) warning(e))
+      }, error=function(e) if(!silent){warning(e)} )
       out
     }
 
-    guess_mosek_version_from_mosek_bindir <- function()
+    guess_mosek_libname_from_current_installation <- function(silent=FALSE)
+    {
+      out <- guess_mosek_libname_default()
+      tryCatch({
+        arch <- R.Version()$arch
+        archinfo <- list(i386="", x86_64="64")[[arch]]
+        versioninfo <- ifelse(is_windows(), guess_mosek_version_from_current_installation(silent=TRUE), "")
+        versioninfo <- sub("\\.","_",versioninfo)
+        tryCatch(stopifnot(
+            !is.null(archinfo)), error=function(e) stop(paste0("Could not identify MOSEK library name from current installation (arch=", arch, " was unknown)."), call.=FALSE))
+        tryCatch(stopifnot(
+            !is_windows() || nchar(versioninfo)>=1), error=function(e) stop("Could not identify MOSEK library name from current installation.", call.=FALSE))
+        postfixlist <- list(archinfo,versioninfo)
+        postfix <- paste(postfixlist[lapply(postfixlist,nchar)>=1],collapse="_")
+        out <- paste0("mosek", postfix)
+      }, error=function(e) if(!silent){warning(e)} )
+      out
+    }
+
+    guess_mosek_version_from_mosek_bindir <- function(silent=FALSE)
     {
       out <- guess_mosek_version_default()
       tryCatch({
@@ -132,11 +156,11 @@ do.call(function(env)
         minor <- sub("[^0-9]*", "", grep("MSK_VERSION_MINOR",mosekh,value=TRUE))
         guess <- paste0(major,".",minor)
         out <- guess
-      }, error=function(e) warning(e))
+      }, error=function(e) if(!silent){warning(e)} )
       out
     }
 
-    guess_mosek_bindir_from_mosek_bindir <- function()
+    guess_mosek_bindir_from_mosek_bindir <- function(silent=FALSE)
     {
       out <- guess_mosek_bindir_default()
       tryCatch({
@@ -145,11 +169,11 @@ do.call(function(env)
           !is.na(guess), 
           file.exists(guess)), error=function(e) stop("Could not identify MOSEK 'bin' directory from argument 'what_mosek_bindir'.", call.=FALSE))
         out <- normalizePath(guess)
-      }, error=function(e) warning(e))
+      }, error=function(e) if(!silent){warning(e)} )
       out
     }
 
-    guess_mosek_headerdir_from_mosek_bindir <- function()
+    guess_mosek_headerdir_from_mosek_bindir <- function(silent=FALSE)
     {
       out <- guess_mosek_headerdir_default()
       tryCatch({
@@ -158,7 +182,26 @@ do.call(function(env)
           !is.na(guess), 
           file.exists(guess)), error=function(e) stop("Could not identify MOSEK 'h' directory from argument 'what_mosek_bindir'.", call.=FALSE))
         out <- normalizePath(guess)
-      }, error=function(e) warning(e))
+      }, error=function(e) if(!silent){warning(e)} )
+      out
+    }
+
+    guess_mosek_libname_from_mosek_bindir <- function(silent=FALSE)
+    {
+      out <- guess_mosek_libname_default()
+      tryCatch({
+        arch <- R.Version()$arch
+        archinfo <- list(i386="", x86_64="64")[[arch]]
+        versioninfo <- ifelse(is_windows(), guess_mosek_version_from_mosek_bindir(silent=TRUE), "")
+        versioninfo <- sub("\\.","_",versioninfo)
+        tryCatch(stopifnot(
+            !is.null(archinfo)), error=function(e) stop(paste0("Could not identify MOSEK library name from argument 'what_mosek_bindir' (arch=", arch, " was unknown)."), call.=FALSE))
+        tryCatch(stopifnot(
+            !is_windows() || nchar(versioninfo)>=1), error=function(e) stop("Could not identify MOSEK library name from argument 'what_mosek_bindir'.", call.=FALSE))
+        postfixlist <- list(archinfo,versioninfo)
+        postfix <- paste(postfixlist[lapply(postfixlist,nchar)>=1],collapse="_")
+        out <- paste0("mosek", postfix)
+      }, error=function(e) if(!silent){warning(e)} )
       out
     }
 
@@ -170,6 +213,7 @@ do.call(function(env)
       guess_mosek_version   = guess_mosek_version_from_current_installation
       guess_mosek_bindir    = guess_mosek_bindir_from_current_installation
       guess_mosek_headerdir = guess_mosek_headerdir_from_current_installation
+      guess_mosek_libname   = guess_mosek_libname_from_current_installation
     }
     else
     {
@@ -181,6 +225,7 @@ do.call(function(env)
         guess_mosek_version   = guess_mosek_version_default
         guess_mosek_bindir    = guess_mosek_bindir_default
         guess_mosek_headerdir = guess_mosek_headerdir_default
+        guess_mosek_libname   = guess_mosek_libname_default
       }
       else
       {
@@ -191,6 +236,7 @@ do.call(function(env)
         guess_mosek_version   = guess_mosek_version_from_mosek_bindir
         guess_mosek_bindir    = guess_mosek_bindir_from_mosek_bindir
         guess_mosek_headerdir = guess_mosek_headerdir_from_mosek_bindir
+        guess_mosek_libname   = guess_mosek_libname_from_mosek_bindir
       }
     }
 
@@ -202,7 +248,7 @@ do.call(function(env)
       repos          = paste0("https://download.mosek.com/R/", guess_mosek_version()),
       MSK_BINDIR     = guess_mosek_bindir(),
       MSK_HEADERDIR  = guess_mosek_headerdir(),
-      MSK_LIB        = "",
+      MSK_LIB        = guess_mosek_libname(),
       using_pkgbuild = is_windows(),
       using_sysenv   = is_windows(),
       type           = "source",
@@ -246,7 +292,7 @@ do.call(function(env)
       repos          = paste0("https://download.mosek.com/R/", guess_mosek_version()),
       MSK_BINDIR     = guess_mosek_bindir(),
       MSK_HEADERDIR  = guess_mosek_headerdir(),
-      MSK_LIB        = "",
+      MSK_LIB        = guess_mosek_libname(),
       using_pkgbuild = is_windows(),
       using_sysenv   = is_windows(),
       type           = "source",
