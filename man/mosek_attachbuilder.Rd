@@ -13,6 +13,10 @@ to manage Rmosek in respect to the system requirement (i.e., MOSEK):
 \code{update.rmosek}    \tab Update Rmosek package. \cr
 \code{remove.rmosek}    \tab Remove Rmosek package. \cr
 }
+These utilities are equivalent to, and accept the same arguments as,
+\code{\link{install.packages}}, \code{\link{update.packages}} and 
+\code{\link{remove.packages}}, differing only in default argument values 
+and the transmission of Rmosek-specific configuration variables (see details below).
 }
 \arguments{
 \item{what_mosek_bindir}{
