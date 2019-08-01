@@ -370,7 +370,7 @@ do.call(function(env)
     # Introduce builder utils to the user
     #
     cat("
-    Functions attached to the search path:
+    Functions now attached to the search path:
       install.rmosek     - install Rmosek package.
       update.rmosek      - update Rmosek package.
       remove.rmosek      - remove Rmosek package.

@@ -1,21 +1,23 @@
 Package: Rmosek
-Version: 1.3.4
+Version: 1.3.5
 Title: The R to MOSEK Optimization Interface
 Author: MOSEK ApS
 Contact: MOSEK ApS <rmosek@mosek.com>
-Description: This is a generic meta-package designed to make the optimization
-    facilities of MOSEK available from the R-language. The interface supports 
-    large-scale optimization of many kinds: Mixed-integer and continuous linear,
-    second-order cone, exponential cone and power cone optimization, as well as 
-    continuous semidefinite optimization. Rmosek and the R-language are
-    open-source projects. MOSEK is a proprietary product, but
-    unrestricted trial and academic licenses are available.
+Description: This is a meta-package designed to support the
+        installation of Rmosek (>= 6.0) and bring the optimization
+        facilities of MOSEK (>= 6.0) to the R-language. The interface
+        supports large-scale optimization of many kinds: Mixed-integer
+        and continuous linear, second-order cone, exponential cone and
+        power cone optimization, as well as continuous semidefinite
+        optimization. Rmosek and the R-language are open-source
+        projects. MOSEK is a proprietary product, but unrestricted
+        trial and academic licenses are available.
 URL: http://www.mosek.com/
 Maintainer: Henrik A. Friberg <haf@mosek.com>
 License: LGPL (>= 2.1)
 SystemRequirements: MOSEK (>= 6) and MOSEK License (>= 6)
 Suggests: pkgbuild
-Packaged: 2019-04-29 09:03:31 UTC; mosek
+Packaged: 2019-08-01 09:21:53 UTC; mosek
 NeedsCompilation: no
 Repository: CRAN
-Date/Publication: 2019-04-29 19:30:10 UTC
+Date/Publication: 2019-08-01 12:50:11 UTC

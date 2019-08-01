@@ -1,5 +1,11 @@
 Rmosek News
 
+CHANGES IN Rmosek VERSION 1.3.5:
+
+  Added .onAttach hook asking the user to complete the installation.
+
+
+
 CHANGES IN Rmosek VERSION 1.3.4:
 
   Improvements in documentation.
